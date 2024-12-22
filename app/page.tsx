@@ -133,7 +133,7 @@ export default function Home() {
         <section className="py-20 lg:py-32 flex flex-col lg:flex-row items-center justify-between">
           <div className="w-full lg:w-1/2 text-center lg:text-left">
             <h1 className="text-4xl lg:text-5xl font-bold text-gray-200 leading-tight">
-              Share <span className="text-blue-500">Before I Die</span>,<br />
+              <span className="text-blue-500">Before I Die</span>,<br />
               I want to <span className="font-semibold text-blue-400"><span ref={el} /></span>
             </h1>
             
