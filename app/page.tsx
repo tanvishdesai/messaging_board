@@ -77,7 +77,7 @@ export default function Home() {
 
   useEffect(() => {
     const typed = new Typed(el.current, {
-      strings: ['your dreams', 'your hopes', 'your wishes', 'your legacy'],
+      strings: ['make films', 'travel', 'leave a legacy', 'write'],
       typeSpeed: 80,
       loop: true,
     });
