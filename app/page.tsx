@@ -1,101 +1,176 @@
-import Image from "next/image";
+"use client";
+import React, { useState, useEffect, useRef } from "react";
+import Typed from 'typed.js';
+
+interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  children: React.ReactNode;
+}
+
+const Modal = ({ isOpen, onClose, children }: ModalProps) => {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="relative bg-gray-800 rounded-lg w-full max-w-2xl">
+        <div className="sticky top-0 bg-gray-900 rounded-t-lg border-b border-gray-700 p-4 flex justify-between items-center">
+          <h3 className="text-lg font-semibold text-white">Full Message</h3>
+          <button
+            onClick={onClose}
+            className="bg-gray-700 text-white hover:bg-red-600 transition-colors duration-200 rounded-lg w-8 h-8 flex items-center justify-center text-xl font-bold"
+            aria-label="Close modal"
+          >
+            ×
+          </button>
+        </div>
+        <div className="max-h-[calc(80vh-4rem)] overflow-y-auto p-6">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+};
+interface MessageCardProps {
+  content: string;  // Add this interface to type the content prop
+}
+const MessageCard = ({ content }: MessageCardProps  ) => {
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const isLongMessage = content.length > 100;
+
+  return (
+    <>
+      <div className="flex flex-col bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6 shadow-xl transition-all hover:shadow-2xl hover:scale-105 duration-300">
+        <div
+          className="text-gray-200 text-lg line-clamp-4"
+          style={{
+            minHeight: "120px",
+            maxHeight: "300px",
+            overflowY: "hidden",
+          }}
+        >
+          {content}
+        </div>
+        {isLongMessage && (
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="mt-4 text-blue-400 hover:text-blue-300 text-sm font-medium focus:outline-none"
+          >
+            Read More
+          </button>
+        )}
+      </div>
+
+      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
+        <div className="text-gray-200 text-lg whitespace-pre-wrap">
+          {content}
+        </div>
+      </Modal>
+    </>
+  );
+};
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [inputValue, setInputValue] = useState("");
+  const [posts, setPosts] = useState<string[]>([]);
+  const el = useRef(null);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+  useEffect(() => {
+    const typed = new Typed(el.current, {
+      strings: ['your dreams', 'your hopes', 'your wishes', 'your legacy'],
+      typeSpeed: 80,
+      loop: true,
+    });
+
+    return () => {
+      typed.destroy();
+    };
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/posts")
+      .then((res) => res.json())
+      .then((data) => {
+        if (Array.isArray(data)) {
+          // Reverse the array to show newest posts first
+          setPosts([...data].reverse());
+        } else {
+          console.error("Received data is not an array:", data);
+        }
+      })
+      .catch((err) => console.error("Error fetching posts:", err));
+  }, []);
+
+  const handlePost = () => {
+    if (!inputValue.trim()) return;
+    
+    fetch("/api/posts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: inputValue }),
+    })
+      .then((res) => res.json())
+      .then(() => {
+        fetch("/api/posts")
+          .then((res) => res.json())
+          .then((data) => {
+            if (Array.isArray(data)) {
+              // Reverse the array to show newest posts first
+              setPosts([...data].reverse());
+            } else {
+              console.error("Received data is not an array:", data);
+            }
+          });
+        setInputValue("");
+      })
+      .catch((err) => console.error("Error posting content:", err));
+  };
+
+  return (
+    <main className="min-h-screen bg-gradient-to-b from-gray-900 to-black">
+      <div className="container px-4 mx-auto">
+        {/* Hero Section */}
+        <section className="py-20 lg:py-32 flex flex-col lg:flex-row items-center justify-between">
+          <div className="w-full lg:w-1/2 text-center lg:text-left">
+            <h1 className="text-4xl lg:text-5xl font-bold text-gray-200 leading-tight">
+              Share <span className="text-blue-500">Before I Die</span>,<br />
+              I want to <span className="font-semibold text-blue-400"><span ref={el} /></span>
+            </h1>
+            
+            {/* Input Section */}
+            <div className="mt-12 w-full max-w-xl mx-auto lg:mx-0">
+              <textarea
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                placeholder="What do you want to do before you die?"
+                className="w-full p-4 text-lg bg-gray-800/50 backdrop-blur-sm text-gray-200 border border-gray-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none placeholder-gray-400"
+                rows={3}
+              />
+              <button
+                onClick={handlePost}
+                className="w-full mt-4 p-4 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-all duration-300 transform hover:scale-105 font-medium"
+              >
+                Share Your Dream
+              </button>
+            </div>
+          </div>
+        </section>
+
+        {/* Posts Grid */}
+        <section className="pb-20">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 justify-center">
+            {posts.length > 0 ? (
+              posts.map((post, index) => (
+                <MessageCard key={index} content={post} />
+              ))
+            ) : (
+              <div className="text-center text-xl text-gray-400 col-span-full">
+                Be the first to share your dream
+              </div>
+            )}
+          </div>
+        </section>
+      </div>
+    </main>
   );
 }
