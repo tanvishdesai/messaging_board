@@ -1,6 +1,28 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import Typed from 'typed.js';
+import Typed from "typed.js";
+import { Client, Databases } from "appwrite";
+
+// Initialize Appwrite client
+const client = new Client();
+client.setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)  // Ensure this is correct
+      .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
+// Initialize Databases
+const databases = new Databases(client);
+
+// Add validation at the start of your component or in a separate utility file
+if (!process.env.NEXT_PUBLIC_AW_PROJECT_ID || 
+    !process.env.NEXT_PUBLIC_AW_DATABASE_ID || 
+    !process.env.NEXT_PUBLIC_AW_COLLECTION_ID || 
+    !process.env.NEXT_PUBLIC_AW_ENDPOINT) {
+    throw new Error('Required environment variables are not set');
+}
+
+const projectId = process.env.NEXT_PUBLIC_AW_PROJECT_ID;
+const databaseId = process.env.NEXT_PUBLIC_AW_DATABASE_ID;
+const collectionId = process.env.NEXT_PUBLIC_AW_COLLECTION_ID;
+const endpoint = process.env.NEXT_PUBLIC_AW_ENDPOINT;
+
 
 interface ModalProps {
   isOpen: boolean;
@@ -31,12 +53,16 @@ const Modal = ({ isOpen, onClose, children }: ModalProps) => {
     </div>
   );
 };
+
 interface MessageCardProps {
-  content: string;  // Add this interface to type the content prop
+  content: string;
 }
-const MessageCard = ({ content }: MessageCardProps  ) => {
+
+const MessageCard = ({ content }: MessageCardProps) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const isLongMessage = content.length > 100;
+
+  // Check if content is a valid string and has a length property
+  const isLongMessage = typeof content === 'string' && content.length > 100;
 
   return (
     <>
@@ -49,7 +75,8 @@ const MessageCard = ({ content }: MessageCardProps  ) => {
             overflowY: "hidden",
           }}
         >
-          {content}
+          {/* Ensure content is rendered */}
+          {content || 'No content available'}
         </div>
         {isLongMessage && (
           <button
@@ -62,9 +89,7 @@ const MessageCard = ({ content }: MessageCardProps  ) => {
       </div>
 
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        <div className="text-gray-200 text-lg whitespace-pre-wrap">
-          {content}
-        </div>
+        <div className="text-gray-200 text-lg whitespace-pre-wrap">{content}</div>
       </Modal>
     </>
   );
@@ -88,42 +113,52 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/posts")
-      .then((res) => res.json())
-      .then((data) => {
-        if (Array.isArray(data)) {
-          // Reverse the array to show newest posts first
-          setPosts([...data].reverse());
-        } else {
-          console.error("Received data is not an array:", data);
-        }
-      })
-      .catch((err) => console.error("Error fetching posts:", err));
+    // Fetch posts from Appwrite database
+    const fetchPosts = async () => {
+      try {
+        const response = await databases.listDocuments(
+          projectId, // Ensure this is set correctly
+          databaseId, // Make sure this is the correct database ID
+          collectionId // Make sure this is the correct collection ID
+        );
+        
+        console.log("Fetched posts:", response.documents); // Log the raw response
+
+        // Ensure each document has a 'message' field before mapping
+        const postsData = response.documents.map((doc) => doc.message || ""); // Fallback if message is missing
+        console.log("Posts data after mapping:", postsData); // Log the data after mapping
+        setPosts(postsData.reverse()); // Reverse to show newest first
+      } catch (err) {
+        console.error("Error fetching posts:", err);
+      }
+    };
+
+    fetchPosts();
   }, []);
 
-  const handlePost = () => {
+  const handlePost = async () => {
     if (!inputValue.trim()) return;
-    
-    fetch("/api/posts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: inputValue }),
-    })
-      .then((res) => res.json())
-      .then(() => {
-        fetch("/api/posts")
-          .then((res) => res.json())
-          .then((data) => {
-            if (Array.isArray(data)) {
-              // Reverse the array to show newest posts first
-              setPosts([...data].reverse());
-            } else {
-              console.error("Received data is not an array:", data);
-            }
-          });
-        setInputValue("");
-      })
-      .catch((err) => console.error("Error posting content:", err));
+
+    try {
+      // Create a new post in Appwrite database
+      await databases.createDocument(
+        process.env.NEXT_PUBLIC_AW_DATABASE_ID!, // Your database ID
+        process.env.NEXT_PUBLIC_AW_COLLECTION_ID!, // Your collection ID
+        "unique()", // Auto-generated unique ID
+        { message: inputValue } // Ensure we're sending the correct field ('message')
+      );
+
+      // Fetch and update the posts list after posting
+      const response = await databases.listDocuments(
+        process.env.NEXT_PUBLIC_AW_DATABASE_ID!,
+        process.env.NEXT_PUBLIC_AW_COLLECTION_ID!
+      );
+      const postsData = response.documents.map((doc) => doc.message || ""); // Fetch the 'message' field
+      setPosts(postsData.reverse()); // Reverse to show newest first
+      setInputValue(""); // Reset the input value
+    } catch (err) {
+      console.error("Error posting content:", err);
+    }
   };
 
   return (
