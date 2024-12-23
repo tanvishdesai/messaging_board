@@ -21,8 +21,6 @@ if (!process.env.NEXT_PUBLIC_AW_PROJECT_ID ||
 const projectId = process.env.NEXT_PUBLIC_AW_PROJECT_ID;
 const databaseId = process.env.NEXT_PUBLIC_AW_DATABASE_ID;
 const collectionId = process.env.NEXT_PUBLIC_AW_COLLECTION_ID;
-const endpoint = process.env.NEXT_PUBLIC_AW_ENDPOINT;
-
 
 interface ModalProps {
   isOpen: boolean;
