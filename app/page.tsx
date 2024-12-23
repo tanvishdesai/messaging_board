@@ -119,7 +119,7 @@ export default function Home() {
         const response = await databases.listDocuments(
           projectId, // Ensure this is set correctly
           databaseId, // Make sure this is the correct database ID
-          collectionId // Make sure this is the correct collection ID
+          [collectionId] // Make sure this is the correct collection ID
         );
         
         console.log("Fetched posts:", response.documents); // Log the raw response
