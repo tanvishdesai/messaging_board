@@ -24,7 +24,7 @@ if (
   throw new Error("Required environment variables are not set");
 }
 
-const projectId = process.env.NEXT_PUBLIC_AW_PROJECT_ID;
+// const projectId = process.env.NEXT_PUBLIC_AW_PROJECT_ID;
 const databaseId = process.env.NEXT_PUBLIC_AW_DATABASE_ID;
 const messagesCollectionId = process.env.NEXT_PUBLIC_AW_COLLECTION_ID;
 const repliesCollectionId = process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID;
