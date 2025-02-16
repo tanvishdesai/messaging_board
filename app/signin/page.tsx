@@ -1,3 +1,4 @@
+// app/signin/page.tsx
 "use client";
 
 import { useState } from "react";
@@ -10,32 +11,27 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const router = useRouter();
 
-  // Initialize the Appwrite client
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
     .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
-
   const account = new Account(client);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
     try {
-      // Attempt to delete any existing session.
-      // This call is wrapped in a try/catch because if there's no session, it may throw an error.
+      // Delete any lingering session (if one exists)
       try {
         await account.deleteSession("current");
-      } catch (deleteError) {
-        console.warn("No active session to delete or error deleting session:", deleteError);
+      } catch (delErr) {
+        console.warn("No active session to delete", delErr);
       }
 
-      // Now create a new session
       await account.createEmailPasswordSession(email, password);
-      // Redirect to home after successful sign in
       router.push("/");
-    } catch (err: any) {
-      console.error(err);
+    } catch (error: unknown) {
+      console.error(error);
       setError("Failed to sign in. Please check your credentials.");
     }
   };
@@ -85,7 +81,7 @@ export default function SignInPage() {
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-600">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <a href="/signup" className="text-indigo-600 hover:underline">
             Sign up here
           </a>

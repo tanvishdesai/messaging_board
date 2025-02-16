@@ -50,7 +50,6 @@ export async function signOut() {
     const cookieStore = cookies();
     const session = (await cookieStore).get("my-custom-session");
 
-    // If there's no session cookie, simply redirect
     if (!session || !session.value) {
       redirect("/signin");
       return;
@@ -60,9 +59,8 @@ export async function signOut() {
     await account.deleteSession("current");
     (await cookieStore).delete("my-custom-session");
     redirect("/signin");
-  } catch (error) {
-    console.error("Error signing out:", error);
-    // In case of error, still redirect to sign in
+  } catch {
+    console.error("Error signing out");
     redirect("/signin");
   }
 }

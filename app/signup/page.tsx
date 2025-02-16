@@ -19,7 +19,7 @@ export default function SignUpPage() {
 
   const account = new Account(client);
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
 
@@ -35,7 +35,7 @@ export default function SignUpPage() {
 
       // Redirect to home after successful sign up
       router.push("/");
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err);
       setError("Failed to sign up. Please try again.");
     }

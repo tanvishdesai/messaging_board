@@ -1,4 +1,3 @@
-// app/page.tsx
 "use client";
 
 import React, { useEffect, useState, useRef } from "react";
@@ -7,10 +6,16 @@ import { Client, Account, Databases } from "appwrite";
 import Typed from "typed.js";
 import Navbar from "@/components/Navbar";
 
+// Define an interface for the Appwrite user
+interface AppwriteUser {
+  name?: string;
+  email: string;
+}
+
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<AppwriteUser | null>(null);
 
   useEffect(() => {
     const client = new Client()
@@ -21,11 +26,11 @@ export default function Home() {
     // Check if a user session exists
     account
       .get()
-      .then((user) => {
-        setUser(user);
+      .then((userData: AppwriteUser) => {
+        setUser(userData);
         setLoading(false);
       })
-      .catch((err) => {
+      .catch(() => {
         // If no session, redirect to the signup page
         router.push("/signup");
       });
@@ -37,22 +42,17 @@ export default function Home() {
   return (
     <>
       {/* Navbar appears when a user is logged in */}
-      <Navbar username={user.name || user.email} />
+      <Navbar username={user?.name || user?.email || "User"} />
       <ConfessionsPage />
     </>
   );
 }
 
 function ConfessionsPage() {
-  // -----------------------------------
   // 1. Initialize Appwrite and environment variables
-  // -----------------------------------
-  const { useState, useEffect, useRef } = React;
-  const client = new Client();
-  client
+  const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
     .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
-
   const databases = new Databases(client);
 
   if (
@@ -69,9 +69,7 @@ function ConfessionsPage() {
   const messagesCollectionId = process.env.NEXT_PUBLIC_AW_COLLECTION_ID;
   const repliesCollectionId = process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID;
 
-  // -----------------------------------
   // 2. Modal Component
-  // -----------------------------------
   interface ModalProps {
     isOpen: boolean;
     onClose: () => void;
@@ -105,9 +103,7 @@ function ConfessionsPage() {
     );
   };
 
-  // -----------------------------------
   // 3. MessageCard Component
-  // -----------------------------------
   interface MessageCardProps {
     docId: string;
     content: string;
@@ -135,9 +131,7 @@ function ConfessionsPage() {
     );
   };
 
-  // -----------------------------------
   // 4. Main UI: Anonymous Confessions Page
-  // -----------------------------------
   const [inputValue, setInputValue] = useState("");
   const [posts, setPosts] = useState<{ $id: string; message: string }[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -153,7 +147,7 @@ function ConfessionsPage() {
 
   // 4a. Typed.js effect
   useEffect(() => {
-    const typed = new Typed(typedRef.current, {
+    const typed = new Typed(typedRef.current as Element, {
       strings: ["confess your love", "share your feelings", "open your heart"],
       typeSpeed: 80,
       loop: true,
@@ -163,7 +157,7 @@ function ConfessionsPage() {
     };
   }, []);
 
-  // 4b. Fetch posts on load
+  // 4b. Fetch posts on load (with necessary dependencies)
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -176,7 +170,7 @@ function ConfessionsPage() {
     };
 
     fetchPosts();
-  }, []);
+  }, [databaseId, messagesCollectionId, databases]);
 
   // 4c. Handle posting a new confession
   const handlePost = async () => {
