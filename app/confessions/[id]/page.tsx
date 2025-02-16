@@ -11,7 +11,7 @@ type Confession = {
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   // Await params before destructuring its properties
-  const { id } = await params;
+  const { id } =  params;
   
   // Initialize the Appwrite client and databases
   const client = new Client()
@@ -75,7 +75,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 
 export default async function ConfessionPage({ params }: { params: { id: string } }) {
   // Await params before using its properties
-  const { id } = await params;
+  const { id } =  params;
   
   // Initialize the Appwrite client and databases
   const client = new Client()
