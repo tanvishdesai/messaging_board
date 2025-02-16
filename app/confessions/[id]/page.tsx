@@ -10,13 +10,18 @@ type Confession = {
   message: string;
 };
 
+type ParamsType = { id: string };
+
+/**
+ * We type `params` as a Promise<ParamsType> to satisfy Next.js’s PageProps type.
+ * At runtime, if Next.js supplies a plain object, Promise.resolve() will wrap it.
+ */
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string };
+  params: Promise<ParamsType>;
 }): Promise<Metadata> {
-  // Await params to ensure it's resolved
-  const { id } = await Promise.resolve(params);
+  const { id } = await params;
 
   // Initialize the Appwrite client and databases
   const client = new Client()
@@ -34,14 +39,14 @@ export async function generateMetadata({
     const confession = confessionResponse as unknown as Confession;
 
     // Create dynamic metadata using the confession details
-    const title = "Campus Confessions: Anonymous Confession";
+    const title = 'Campus Confessions: Anonymous Confession';
     const description =
       confession.message.length > 150
-        ? confession.message.slice(0, 150) + "..."
+        ? confession.message.slice(0, 150) + '...'
         : confession.message;
     const imageUrl =
       process.env.NEXT_PUBLIC_DEFAULT_SHARE_IMAGE ||
-      "https://example.com/default-share-image.jpg";
+      'https://example.com/default-share-image.jpg';
 
     return {
       title,
@@ -81,10 +86,9 @@ export async function generateMetadata({
 export default async function ConfessionPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<ParamsType>;
 }) {
-  // Await params to ensure it's resolved
-  const { id } = await Promise.resolve(params);
+  const { id } = await params;
 
   // Initialize the Appwrite client and databases
   const client = new Client()
