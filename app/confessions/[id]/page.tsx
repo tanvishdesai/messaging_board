@@ -13,11 +13,11 @@ type Confession = {
 export async function generateMetadata({
   params,
 }: {
-  params: { id: string } | Promise<{ id: string }>;
+  params: { id: string };
 }): Promise<Metadata> {
-  // Await params in case it's a promise
-  const { id } = await params;
-  
+  // Await params to ensure it's resolved
+  const { id } = await Promise.resolve(params);
+
   // Initialize the Appwrite client and databases
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
@@ -81,11 +81,11 @@ export async function generateMetadata({
 export default async function ConfessionPage({
   params,
 }: {
-  params: { id: string } | Promise<{ id: string }>;
+  params: { id: string };
 }) {
-  // Await params in case it's a promise
-  const { id } = await params;
-  
+  // Await params to ensure it's resolved
+  const { id } = await Promise.resolve(params);
+
   // Initialize the Appwrite client and databases
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
@@ -112,8 +112,13 @@ export default async function ConfessionPage({
     <main className="min-h-screen bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white p-4">
       <div className="max-w-3xl mx-auto bg-white/10 backdrop-blur-md p-6 rounded-lg">
         <h1 className="text-3xl font-bold mb-4">Anonymous Confession</h1>
-        <p className="text-lg mb-6 whitespace-pre-wrap">{confession!.message}</p>
-        <ShareButton url={shareUrl} message="Check out this anonymous confession!" />
+        <p className="text-lg mb-6 whitespace-pre-wrap">
+          {confession!.message}
+        </p>
+        <ShareButton
+          url={shareUrl}
+          message="Check out this anonymous confession!"
+        />
       </div>
     </main>
   );
