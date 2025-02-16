@@ -8,7 +8,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [enrollmentNo, setEnrollmentNo] = useState(""); // New state for enrollment number
+  const [enrollmentNo, setEnrollmentNo] = useState("");
   const [error, setError] = useState("");
   const router = useRouter();
 
@@ -16,7 +16,6 @@ export default function SignUpPage() {
   const client = new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
     .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
-
   const account = new Account(client);
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -42,9 +41,11 @@ export default function SignUpPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
-      <div className="w-full max-w-md bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-4 text-center">Sign Up</h1>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black p-4">
+      <div className="w-full max-w-md bg-white/10 backdrop-blur-md border border-white/20 rounded-lg shadow-xl p-6">
+        <h1 className="text-2xl md:text-3xl font-extrabold mb-4 text-center text-pink-300">
+          Sign Up
+        </h1>
         {error && <p className="mb-4 text-red-500">{error}</p>}
         <form onSubmit={handleSignUp} className="space-y-4">
           <input
@@ -55,7 +56,7 @@ export default function SignUpPage() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="w-full p-2 bg-transparent border border-white/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
           <input
             id="password"
@@ -66,7 +67,7 @@ export default function SignUpPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="w-full p-2 bg-transparent border border-white/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
           <input
             id="name"
@@ -76,9 +77,9 @@ export default function SignUpPage() {
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="w-full p-2 bg-transparent border border-white/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
-          {/* New Enrollment Number Field */}
+          {/* Enrollment Number Field */}
           <input
             id="enrollmentNo"
             name="enrollmentNo"
@@ -87,18 +88,18 @@ export default function SignUpPage() {
             value={enrollmentNo}
             onChange={(e) => setEnrollmentNo(e.target.value)}
             required
-            className="w-full p-2 border border-gray-300 rounded-md"
+            className="w-full p-2 bg-transparent border border-white/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500"
           />
           <button
             type="submit"
-            className="w-full py-2 px-4 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition"
+            className="w-full py-2 px-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-md hover:from-pink-700 hover:to-purple-700 transition"
           >
             Sign Up
           </button>
         </form>
-        <p className="mt-4 text-center text-sm text-gray-600">
+        <p className="mt-4 text-center text-sm text-gray-400">
           Already have an account?{" "}
-          <a href="/signin" className="text-indigo-600 hover:underline">
+          <a href="/signin" className="text-pink-500 hover:underline">
             Sign in here
           </a>
         </p>

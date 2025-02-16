@@ -1,5 +1,4 @@
 "use client";
-
 import React, {
   useEffect,
   useState,
@@ -11,11 +10,12 @@ import React, {
 import { useRouter } from "next/navigation";
 import { Client, Account, Databases } from "appwrite";
 import Typed from "typed.js";
+import { HandThumbUpIcon, HandThumbDownIcon, ShareIcon } from "@heroicons/react/24/solid";
 
 interface AppwriteUser {
   $id?: string;
   name?: string;
-  email: string;
+  email?: string;
 }
 
 export default function Home() {
@@ -41,7 +41,11 @@ export default function Home() {
   }, [router]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
+        Loading...
+      </div>
+    );
   }
 
   return <ConfessionsPage user={user!} />;
@@ -63,7 +67,9 @@ type ReactionEntry = {
   docId?: string;
 };
 
-// Memoized Modal Component
+// ----------------------
+// Modal Component
+// ----------------------
 const Modal = memo(
   ({
     isOpen,
@@ -111,19 +117,22 @@ const Modal = memo(
     );
   }
 );
-
 Modal.displayName = "Modal";
 
-// Memoized ReplyTextArea Component
+// ----------------------
+// ReplyTextArea Component (Updated)
+// ----------------------
 const ReplyTextArea = memo(
   ({
     value,
     onChange,
     onSubmit,
+    onShare,
   }: {
     value: string;
     onChange: (value: string) => void;
     onSubmit: () => void;
+    onShare?: () => void;
   }) => {
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -143,20 +152,32 @@ const ReplyTextArea = memo(
           className="w-full p-3 bg-transparent border border-white/30 rounded-md mb-4 text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
           rows={2}
         />
-        <button
-          onClick={onSubmit}
-          className="w-full py-2 font-semibold rounded-md bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 transition"
-        >
-          Send Reply
-        </button>
+        <div className="flex space-x-4">
+          <button
+            onClick={onSubmit}
+            className="flex-1 py-2 font-semibold rounded-md bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 transition text-white"
+          >
+            Send Reply
+          </button>
+          {onShare && (
+            <button
+              onClick={onShare}
+              className="py-2 px-4 font-semibold rounded-md border border-pink-600 text-pink-600 hover:bg-pink-600 hover:text-white transition flex items-center gap-1"
+            >
+              <ShareIcon className="w-5 h-5" />
+              Share
+            </button>
+          )}
+        </div>
       </div>
     );
   }
 );
-
 ReplyTextArea.displayName = "ReplyTextArea";
 
-// Memoized MessageCard Component
+// ----------------------
+// MessageCard Component (Updated Upvote/Downvote)
+// ----------------------
 const MessageCard = memo(
   ({
     docId,
@@ -194,29 +215,30 @@ const MessageCard = memo(
 
         <div className="mt-3 flex flex-col gap-2">
           <div className="flex items-center space-x-2">
+            {/* Updated Vote Buttons */}
             <button
               onClick={() => onVote(docId, 1)}
-              className={`px-2 py-1 rounded transition ${
+              className={`p-2 rounded transition ${
                 voteData?.userVote === 1
-                  ? "bg-green-700"
-                  : "bg-green-600 hover:bg-green-700"
+                  ? "bg-blue-700"
+                  : "bg-blue-600 hover:bg-blue-700"
               }`}
             >
-              Upvote
+              <HandThumbUpIcon className="w-5 h-5 text-white" />
             </button>
+            <span className="text-sm text-white">
+              {voteData?.total ?? 0}
+            </span>
             <button
               onClick={() => onVote(docId, -1)}
-              className={`px-2 py-1 rounded transition ${
+              className={`p-2 rounded transition ${
                 voteData?.userVote === -1
-                  ? "bg-red-700"
-                  : "bg-red-600 hover:bg-red-700"
+                  ? "bg-purple-700"
+                  : "bg-purple-600 hover:bg-purple-700"
               }`}
             >
-              Downvote
+              <HandThumbDownIcon className="w-5 h-5 text-white" />
             </button>
-            <span className="text-sm">
-              Score: {voteData?.total ? voteData.total : 0}
-            </span>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -244,10 +266,13 @@ const MessageCard = memo(
     );
   }
 );
-
 MessageCard.displayName = "MessageCard";
 
+// ----------------------
+// ConfessionsPage Component
+// ----------------------
 function ConfessionsPage({ user }: ConfessionsPageProps) {
+  const router = useRouter();
   const client = useMemo(() => {
     return new Client()
       .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
@@ -292,8 +317,9 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
   }>({});
 
   // Sorting state
-  const [sortOption, setSortOption] = useState<"recent" | "upvotes" | "reactions">("recent");
-  // Controls dropdown open/close
+  const [sortOption, setSortOption] = useState<
+    "recent" | "upvotes" | "reactions"
+  >("recent");
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
   const typedRef = useRef<HTMLParagraphElement>(null);
@@ -328,7 +354,6 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
           $id: string;
           message: string;
         }[];
-        // Reverse to show the latest posts first
         setPosts(postsData.reverse());
       } catch (err) {
         console.error("Error fetching posts:", err);
@@ -599,10 +624,11 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
           value={replyInput}
           onChange={setReplyInput}
           onSubmit={handleReply}
+          onShare={() => router.push(`/confessions/${selectedMessageId}`)}
         />
       </>
     ),
-    [selectedMessageContent, replies, replyInput, handleReply]
+    [selectedMessageContent, replies, replyInput, handleReply, router, selectedMessageId]
   );
 
   return (
@@ -649,60 +675,83 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
 
         {/* Single "Sort By" button with dropdown */}
         <section className="mb-8 flex justify-center">
-          <div className="relative inline-block text-left">
-            <button
-              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-pink-600 rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-pink-500"
-            >
-              Sort By:{" "}
-              {sortOption === "recent"
-                ? "Recent Confessions"
-                : sortOption === "upvotes"
-                ? "Highest Upvotes"
-                : "Most Reactions"}
-              <span className="ml-2">▼</span>
-            </button>
-            {isSortMenuOpen && (
-              <div className="absolute right-0 z-10 mt-2 w-48 origin-top-right bg-white/10 border border-white/20 rounded-md shadow-lg ring-1 ring-black ring-opacity-5 focus:outline-none">
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setSortOption("recent");
-                      setIsSortMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm text-white hover:bg-pink-600 ${
-                      sortOption === "recent" ? "bg-pink-600" : ""
-                    }`}
-                  >
-                    Recent Confessions
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortOption("upvotes");
-                      setIsSortMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm text-white hover:bg-pink-600 ${
-                      sortOption === "upvotes" ? "bg-pink-600" : ""
-                    }`}
-                  >
-                    Highest Upvotes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortOption("reactions");
-                      setIsSortMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm text-white hover:bg-pink-600 ${
-                      sortOption === "reactions" ? "bg-pink-600" : ""
-                    }`}
-                  >
-                    Most Reactions
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </section>
+  <div className="relative inline-block text-left">
+    {/* Toggle Button */}
+    <button
+      onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white 
+                 bg-pink-600 rounded-md hover:bg-pink-700 focus:outline-none 
+                 focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 
+                 focus:ring-pink-500 transition-colors"
+    >
+      Sort By:&nbsp;
+      {sortOption === "recent"
+        ? "Recent Confessions"
+        : sortOption === "upvotes"
+        ? "Highest Upvotes"
+        : "Most Reactions"}
+      <span className="ml-2">▼</span>
+    </button>
+
+    {/* Dropdown Menu */}
+    {isSortMenuOpen && (
+      <div
+        className="absolute right-0 z-10 mt-2 w-48 origin-top-right 
+                   bg-white/10 backdrop-blur-md border border-white/20 
+                   rounded-md shadow-lg focus:outline-none"
+      >
+        <div className="py-1">
+          <button
+            onClick={() => {
+              setSortOption("recent");
+              setIsSortMenuOpen(false);
+            }}
+            className={`block w-full text-left px-4 py-2 text-sm text-white 
+                        hover:bg-pink-600 hover:text-white transition-colors 
+                        ${
+                          sortOption === "recent"
+                            ? "bg-pink-600 text-white"
+                            : ""
+                        }`}
+          >
+            Recent Confessions
+          </button>
+          <button
+            onClick={() => {
+              setSortOption("upvotes");
+              setIsSortMenuOpen(false);
+            }}
+            className={`block w-full text-left px-4 py-2 text-sm text-white 
+                        hover:bg-pink-600 hover:text-white transition-colors 
+                        ${
+                          sortOption === "upvotes"
+                            ? "bg-pink-600 text-white"
+                            : ""
+                        }`}
+          >
+            Highest Upvotes
+          </button>
+          <button
+            onClick={() => {
+              setSortOption("reactions");
+              setIsSortMenuOpen(false);
+            }}
+            className={`block w-full text-left px-4 py-2 text-sm text-white 
+                        hover:bg-pink-600 hover:text-white transition-colors 
+                        ${
+                          sortOption === "reactions"
+                            ? "bg-pink-600 text-white"
+                            : ""
+                        }`}
+          >
+            Most Reactions
+          </button>
+        </div>
+      </div>
+    )}
+  </div>
+</section>
+
 
         <section>
           <h2 className="text-2xl font-bold text-gray-200 mb-6">

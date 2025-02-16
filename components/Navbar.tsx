@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Client, Account } from "appwrite";
+import { usePathname } from "next/navigation";
 import { signOut } from "../lib/appwrite";
 
 interface AppwriteUser {
@@ -12,6 +13,14 @@ interface AppwriteUser {
 }
 
 export default function Navbar() {
+  // Get current route
+  const pathname = usePathname();
+
+  // Hide Navbar on sign in/up pages
+  if (pathname === "/signin" || pathname === "/signup") {
+    return null;
+  }
+
   const [user, setUser] = useState<AppwriteUser | null>(null);
 
   useEffect(() => {
@@ -30,16 +39,14 @@ export default function Navbar() {
       });
   }, []);
 
-  const username = user?.name || user?.email || "User";
-
   return (
-    <nav className="flex justify-between items-center p-4 bg-gray-800 text-white">
+    <nav className="flex justify-between items-center p-4 bg-white/10 backdrop-blur-md border-b border-white/20">
       <div className="flex items-center space-x-4">
         {/* Home Icon */}
         <Link href="/">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-white hover:text-gray-300 transition-colors"
+            className="h-6 w-6 text-pink-500 hover:text-pink-400 transition-colors"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -52,18 +59,39 @@ export default function Navbar() {
             />
           </svg>
         </Link>
-        <span>Welcome, {username}</span>
+        {user && (
+          <span className="text-gray-300">
+            Welcome, {user.name || user.email}
+          </span>
+        )}
       </div>
       <div>
-        <form action={signOut}>
-          <button
-            type="submit"
-            className="bg-red-500 hover:bg-red-600 text-white font-bold py-2 px-4 rounded"
-          >
-            Logout
-          </button>
-        </form>
+        {user ? (
+          <form action={signOut}>
+            <button
+              type="submit"
+              className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-2 px-4 rounded transition"
+            >
+              Logout
+            </button>
+          </form>
+        ) : (
+          <div className="flex space-x-4">
+            <Link
+              href="/signin"
+              className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-bold py-2 px-4 rounded transition"
+            >
+              Sign In
+            </Link>
+            <Link
+              href="/signup"
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-bold py-2 px-4 rounded transition"
+            >
+              Sign Up
+            </Link>
+          </div>
+        )}
       </div>
     </nav>
-  );
+);
 }

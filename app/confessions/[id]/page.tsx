@@ -1,5 +1,3 @@
-// app/confessions/[id]/page.tsx
-
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Client, Databases } from 'appwrite';
@@ -110,12 +108,14 @@ export default async function ConfessionPage({
   }
 
   // Construct the shareable URL
-  const shareUrl = `http://localhost:3000/confessions/${id}`;
+  const shareUrl = `https://yourdomain.com/confessions/${id}`;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white p-4">
-      <div className="max-w-3xl mx-auto bg-white/10 backdrop-blur-md p-6 rounded-lg">
-        <h1 className="text-3xl font-bold mb-4">Anonymous Confession</h1>
+      <div className="max-w-3xl mx-auto bg-white/10 backdrop-blur-md border border-white/20 p-6 rounded-lg shadow-xl">
+        <h1 className="text-3xl md:text-4xl font-extrabold mb-4">
+          Anonymous Confession
+        </h1>
         <p className="text-lg mb-6 whitespace-pre-wrap">
           {confession!.message}
         </p>
