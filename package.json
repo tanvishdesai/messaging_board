@@ -11,18 +11,22 @@
     "deploy": "gh-pages -d out -b main"
   },
   "dependencies": {
-    "appwrite": "^16.1.0",
+    "appwrite": "^17.0.0",
     "gh-pages": "^6.2.0",
     "next": "15.1.2",
+    "node-appwrite": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "typed.js": "^2.1.0"
+    "typed.js": "^2.1.0",
+    "uid": "^2.0.2",
+    "uuid": "^11.0.5"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@types/uuid": "^10.0.0",
     "eslint": "^9",
     "eslint-config-next": "15.1.2",
     "postcss": "^8",
