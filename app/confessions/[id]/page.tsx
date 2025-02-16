@@ -64,7 +64,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
         images: [imageUrl],
       },
     };
-  } catch (error) {
+  } catch {
     // Fallback metadata in case of error (e.g., confession not found)
     return {
       title: 'Confession Not Found',
@@ -91,7 +91,7 @@ export default async function ConfessionPage({ params }: { params: { id: string 
       id
     );
     confession = confessionResponse as unknown as Confession;
-  } catch (error) {
+  } catch {
     // If the confession isn’t found, trigger Next.js’s notFound helper
     notFound();
   }

@@ -1,10 +1,9 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo, memo } from "react";
+import React, { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Client, Account, Databases } from "appwrite";
 import Typed from "typed.js";
-import Link from "next/link";
 
 interface AppwriteUser {
   $id?: string;
@@ -333,12 +332,9 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     fetchPosts();
   }, [databaseId, messagesCollectionId, databases]);
 
-  const fetchVotes = async () => {
+  const fetchVotes = useCallback(async () => {
     try {
-      const response = await databases.listDocuments(
-        databaseId,
-        votesCollectionId
-      );
+      const response = await databases.listDocuments(databaseId, votesCollectionId);
       const votesData = response.documents as unknown as {
         $id: string;
         postId: string;
@@ -361,14 +357,12 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     } catch (err) {
       console.error("Error fetching votes:", err);
     }
-  };
+  }, [databases, databaseId, votesCollectionId, user]);
+  
 
-  const fetchReactions = async () => {
+  const fetchReactions = useCallback(async () => {
     try {
-      const response = await databases.listDocuments(
-        databaseId,
-        reactionsCollectionId
-      );
+      const response = await databases.listDocuments(databaseId, reactionsCollectionId);
       const reactionsData = response.documents as unknown as {
         $id: string;
         postId: string;
@@ -394,8 +388,8 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     } catch (err) {
       console.error("Error fetching reactions:", err);
     }
-  };
-
+  }, [databases, databaseId, reactionsCollectionId, user]);
+  
   useEffect(() => {
     fetchVotes();
     fetchReactions();
