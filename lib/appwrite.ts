@@ -52,7 +52,6 @@ export async function signOut() {
 
     if (!session || !session.value) {
       redirect("/signin");
-      return;
     }
 
     const { account } = await createSessionClient();

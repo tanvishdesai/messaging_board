@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Client, Account, Databases } from "appwrite";
 import Typed from "typed.js";
 import Navbar from "@/components/Navbar";
+import { useMemo } from "react";
 
 // Define an interface for the Appwrite user
 interface AppwriteUser {
@@ -50,10 +51,14 @@ export default function Home() {
 
 function ConfessionsPage() {
   // 1. Initialize Appwrite and environment variables
-  const client = new Client()
-    .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
-  const databases = new Databases(client);
+  const client = useMemo(() => {
+    return new Client()
+      .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
+      .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
+  }, []);
+  
+  const databases = useMemo(() => new Databases(client), [client]);
+  
 
   if (
     !process.env.NEXT_PUBLIC_AW_PROJECT_ID ||
