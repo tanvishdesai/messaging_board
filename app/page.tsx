@@ -1,6 +1,13 @@
 "use client";
 
-import React, { useEffect, useState, useRef, useMemo, memo, useCallback } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useMemo,
+  memo,
+  useCallback,
+} from "react";
 import { useRouter } from "next/navigation";
 import { Client, Account, Databases } from "appwrite";
 import Typed from "typed.js";
@@ -285,9 +292,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
   }>({});
 
   // Sorting state
-  const [sortOption, setSortOption] = useState<
-    "recent" | "upvotes" | "reactions"
-  >("recent");
+  const [sortOption, setSortOption] = useState<"recent" | "upvotes" | "reactions">("recent");
   // Controls dropdown open/close
   const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
 
@@ -334,7 +339,10 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
 
   const fetchVotes = useCallback(async () => {
     try {
-      const response = await databases.listDocuments(databaseId, votesCollectionId);
+      const response = await databases.listDocuments(
+        databaseId,
+        votesCollectionId
+      );
       const votesData = response.documents as unknown as {
         $id: string;
         postId: string;
@@ -358,11 +366,13 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
       console.error("Error fetching votes:", err);
     }
   }, [databases, databaseId, votesCollectionId, user]);
-  
 
   const fetchReactions = useCallback(async () => {
     try {
-      const response = await databases.listDocuments(databaseId, reactionsCollectionId);
+      const response = await databases.listDocuments(
+        databaseId,
+        reactionsCollectionId
+      );
       const reactionsData = response.documents as unknown as {
         $id: string;
         postId: string;
@@ -393,7 +403,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
   useEffect(() => {
     fetchVotes();
     fetchReactions();
-  }, [posts]);
+  }, [posts, fetchVotes, fetchReactions]);
 
   const handlePost = async () => {
     if (!inputValue.trim()) return;
@@ -463,13 +473,9 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
   }, [databases, databaseId, repliesCollectionId, replyInput, selectedMessageId]);
   
   const handleVote = async (postId: string, newVoteValue: number) => {
-    // Suppose 'votes[postId]' is an object like:
-    // { total: number; userVote: number; docId: string }
     const voteData = votes[postId];
-  
-    // If the user has never voted on this post (no docId)
+
     if (!voteData || !voteData.docId) {
-      // Create a new doc with the chosen vote
       try {
         await databases.createDocument(
           databaseId,
@@ -481,16 +487,14 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
             vote: newVoteValue,
           }
         );
-        fetchVotes(); // refresh local state
+        fetchVotes();
       } catch (err) {
         console.error("Error creating vote doc:", err);
       }
       return;
     }
-  
-    // If user is clicking the same vote again, toggle it off (set to 0)
+
     if (voteData.userVote === newVoteValue) {
-      // That means they want to remove their vote
       try {
         await databases.updateDocument(
           databaseId,
@@ -504,9 +508,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
       }
       return;
     }
-  
-    // Otherwise, user is switching from +1 to -1 or from -1 to +1
-    // Update the existing doc to the new vote
+
     try {
       await databases.updateDocument(
         databaseId,
@@ -519,7 +521,6 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
       console.error("Error updating vote:", err);
     }
   };
-  
 
   const handleReaction = async (postId: string, reaction: string) => {
     const reactionEntry = reactions[postId]?.[reaction];
@@ -543,7 +544,6 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   };
 
-  // Compute sorted posts based on the selected filter
   const sortedPosts = useMemo(() => {
     const postsCopy = [...posts];
     if (sortOption === "recent") {
@@ -604,7 +604,6 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     ),
     [selectedMessageContent, replies, replyInput, handleReply]
   );
-  
 
   return (
     <main className="min-h-screen flex flex-col bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
@@ -655,7 +654,6 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
               onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
               className="inline-flex items-center px-4 py-2 text-sm font-medium text-white bg-pink-600 rounded-md hover:bg-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-pink-500"
             >
-              {/* Label changes based on the current sort option */}
               Sort By:{" "}
               {sortOption === "recent"
                 ? "Recent Confessions"
@@ -708,7 +706,6 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
 
         <section>
           <h2 className="text-2xl font-bold text-gray-200 mb-6">
-            {/* Display a heading that matches the chosen sort option */}
             {sortOption === "recent"
               ? "Recent Confessions"
               : sortOption === "upvotes"
