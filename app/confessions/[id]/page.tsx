@@ -1,4 +1,5 @@
 // app/confessions/[id]/page.tsx
+
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { Client, Databases } from 'appwrite';
@@ -9,9 +10,13 @@ type Confession = {
   message: string;
 };
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  // Await params before destructuring its properties
-  const { id } =  params;
+export async function generateMetadata({
+  params,
+}: {
+  params: { id: string } | Promise<{ id: string }>;
+}): Promise<Metadata> {
+  // Await params in case it's a promise
+  const { id } = await params;
   
   // Initialize the Appwrite client and databases
   const client = new Client()
@@ -36,7 +41,7 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
         : confession.message;
     const imageUrl =
       process.env.NEXT_PUBLIC_DEFAULT_SHARE_IMAGE ||
-      "https://example.com/default-share-image.jpg"; // Use your own fallback image
+      "https://example.com/default-share-image.jpg";
 
     return {
       title,
@@ -73,9 +78,13 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   }
 }
 
-export default async function ConfessionPage({ params }: { params: { id: string } }) {
-  // Await params before using its properties
-  const { id } =  params;
+export default async function ConfessionPage({
+  params,
+}: {
+  params: { id: string } | Promise<{ id: string }>;
+}) {
+  // Await params in case it's a promise
+  const { id } = await params;
   
   // Initialize the Appwrite client and databases
   const client = new Client()
