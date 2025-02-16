@@ -13,14 +13,8 @@ interface AppwriteUser {
 }
 
 export default function Navbar() {
-  // Get current route
+  // Always call hooks at the top
   const pathname = usePathname();
-
-  // Hide Navbar on sign in/up pages
-  if (pathname === "/signin" || pathname === "/signup") {
-    return null;
-  }
-
   const [user, setUser] = useState<AppwriteUser | null>(null);
 
   useEffect(() => {
@@ -38,6 +32,11 @@ export default function Navbar() {
         setUser(null);
       });
   }, []);
+
+  // Conditionally render Navbar after calling hooks
+  if (pathname === "/signin" || pathname === "/signup") {
+    return null;
+  }
 
   return (
     <nav className="flex justify-between items-center p-4 bg-white/10 backdrop-blur-md border-b border-white/20">
@@ -93,5 +92,5 @@ export default function Navbar() {
         )}
       </div>
     </nav>
-);
+  );
 }
