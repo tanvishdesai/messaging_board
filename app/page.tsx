@@ -437,7 +437,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   };
 
-  const handleReply = async () => {
+  const handleReply = useCallback(async () => {
     if (!replyInput.trim()) return;
     try {
       await databases.createDocument(
@@ -460,8 +460,8 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     } catch (err) {
       console.error("Error posting reply:", err);
     }
-  };
-
+  }, [databases, databaseId, repliesCollectionId, replyInput, selectedMessageId]);
+  
   const handleVote = async (postId: string, newVoteValue: number) => {
     // Suppose 'votes[postId]' is an object like:
     // { total: number; userVote: number; docId: string }
@@ -602,8 +602,9 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
         />
       </>
     ),
-    [selectedMessageContent, replies, replyInput]
+    [selectedMessageContent, replies, replyInput, handleReply]
   );
+  
 
   return (
     <main className="min-h-screen flex flex-col bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
