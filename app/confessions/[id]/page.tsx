@@ -108,7 +108,7 @@ export default async function ConfessionPage({
   }
 
   // Construct the shareable URL
-  const shareUrl = `https://yourdomain.com/confessions/${id}`;
+  const shareUrl = `https://www.anonymus-message-board.site/confessions/${id}`;
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white p-4">
