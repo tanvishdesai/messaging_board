@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Client, Account } from "appwrite";
 
@@ -8,6 +8,7 @@ export default function SignInPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // NEW loading state
   const router = useRouter();
 
   const client = new Client()
@@ -18,7 +19,7 @@ export default function SignInPage() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
+    setLoading(true); // start loading
     try {
       // Delete any lingering session (if one exists)
       try {
@@ -32,6 +33,8 @@ export default function SignInPage() {
     } catch (error: unknown) {
       console.error(error);
       setError("Failed to sign in. Please check your credentials.");
+    } finally {
+      setLoading(false); // stop loading regardless of outcome
     }
   };
 
@@ -44,10 +47,7 @@ export default function SignInPage() {
         {error && <p className="mb-4 text-red-500">{error}</p>}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label
-              htmlFor="email"
-              className="block text-sm font-medium text-gray-300"
-            >
+            <label htmlFor="email" className="block text-sm font-medium text-gray-300">
               Email:
             </label>
             <input
@@ -62,10 +62,7 @@ export default function SignInPage() {
             />
           </div>
           <div>
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium text-gray-300"
-            >
+            <label htmlFor="password" className="block text-sm font-medium text-gray-300">
               Password:
             </label>
             <input
@@ -82,9 +79,10 @@ export default function SignInPage() {
           </div>
           <button
             type="submit"
+            disabled={loading} // disable while loading
             className="w-full py-2 px-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-md hover:from-pink-700 hover:to-purple-700 transition"
           >
-            Sign In
+            {loading ? "Signing in..." : "Sign In"} {/* change text based on loading */}
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-400">

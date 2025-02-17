@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Client, Account, ID } from "appwrite";
 
@@ -10,6 +10,7 @@ export default function SignUpPage() {
   const [name, setName] = useState("");
   const [enrollmentNo, setEnrollmentNo] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false); // NEW loading state
   const router = useRouter();
 
   // Initialize the Appwrite client
@@ -21,7 +22,7 @@ export default function SignUpPage() {
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError("");
-
+    setLoading(true); // start loading
     try {
       // Create the user account
       await account.create(ID.unique(), email, password, name);
@@ -32,11 +33,12 @@ export default function SignUpPage() {
       // Update user preferences with the enrollment number
       await account.updatePrefs({ enrollmentNo });
 
-      // Redirect to home after successful sign up
       router.push("/");
     } catch (err: unknown) {
       console.error(err);
       setError("Failed to sign up. Please try again.");
+    } finally {
+      setLoading(false); // stop loading regardless of outcome
     }
   };
 
@@ -92,9 +94,10 @@ export default function SignUpPage() {
           />
           <button
             type="submit"
+            disabled={loading} // disable while loading
             className="w-full py-2 px-4 bg-gradient-to-r from-pink-600 to-purple-600 text-white rounded-md hover:from-pink-700 hover:to-purple-700 transition"
           >
-            Sign Up
+            {loading ? "Signing up..." : "Sign Up"} {/* change text based on loading */}
           </button>
         </form>
         <p className="mt-4 text-center text-sm text-gray-400">

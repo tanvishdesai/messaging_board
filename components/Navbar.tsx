@@ -22,7 +22,7 @@ export default function Navbar() {
       .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
       .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
     const account = new Account(client);
-
+  
     account
       .get()
       .then((userData: AppwriteUser) => {
@@ -31,7 +31,8 @@ export default function Navbar() {
       .catch(() => {
         setUser(null);
       });
-  }, []);
+  }, [pathname]); // Re-run this effect whenever the route changes
+  
 
   // Conditionally render Navbar after calling hooks
   if (pathname === "/signin" || pathname === "/signup") {
