@@ -48,20 +48,28 @@ export async function getLoggedInUser() {
 }
 
 export async function signOut() {
+  // Since cookies() returns a Promise, we need to await it
+  const cookieStore = await cookies();
+  const session = cookieStore.get("my-custom-session");
+
+  // Early return with redirect if no session exists
+  if (!session || !session.value) {
+    redirect("/signin");
+  }
+
   try {
-    const cookieStore = await cookies();
-    const session = cookieStore.get("my-custom-session");
-
-    if (!session || !session.value) {
-      redirect("/signin");
-    }
-
+    // Initialize Appwrite client and delete the session
     const { account } = await createSessionClient();
     await account.deleteSession("current");
+    
+    // Delete the cookie
     cookieStore.delete("my-custom-session");
+    
+    // Redirect to signin page
     redirect("/signin");
-  } catch {
-    console.error("Error signing out");
-    redirect("/signin");
+  } catch (error) {
+    // It's good practice to handle potential errors when working with external services
+    console.error("Error during sign out:", error);
+    throw error; // Or handle the error according to your application's needs
   }
 }
