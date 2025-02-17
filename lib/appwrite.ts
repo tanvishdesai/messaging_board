@@ -9,7 +9,8 @@ export async function createSessionClient() {
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
     .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
 
-  const session = await (await cookies()).get("my-custom-session");
+  const cookieStore = await cookies();
+  const session = cookieStore.get("my-custom-session");
   if (!session || !session.value) {
     throw new Error("No session");
   }
@@ -22,6 +23,7 @@ export async function createSessionClient() {
     },
   };
 }
+
 
 export async function createAdminClient() {
   const client = new Client()
@@ -47,8 +49,8 @@ export async function getLoggedInUser() {
 
 export async function signOut() {
   try {
-    const cookieStore = cookies();
-    const session = (await cookieStore).get("my-custom-session");
+    const cookieStore = await cookies();
+    const session = cookieStore.get("my-custom-session");
 
     if (!session || !session.value) {
       redirect("/signin");
@@ -56,7 +58,7 @@ export async function signOut() {
 
     const { account } = await createSessionClient();
     await account.deleteSession("current");
-    (await cookieStore).delete("my-custom-session");
+    cookieStore.delete("my-custom-session");
     redirect("/signin");
   } catch {
     console.error("Error signing out");

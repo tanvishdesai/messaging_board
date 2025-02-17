@@ -10,7 +10,11 @@ import React, {
 import { useRouter } from "next/navigation";
 import { Client, Account, Databases } from "appwrite";
 import Typed from "typed.js";
-import { HandThumbUpIcon, HandThumbDownIcon, ShareIcon } from "@heroicons/react/24/solid";
+import {
+  HandThumbUpIcon,
+  HandThumbDownIcon,
+  ShareIcon,
+} from "@heroicons/react/24/solid";
 
 interface AppwriteUser {
   $id?: string;
@@ -94,11 +98,16 @@ const Modal = memo(
     if (!isOpen) return null;
 
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 transition-opacity"
+        aria-modal="true"
+        role="dialog"
+      >
         <div
           ref={modalRef}
-          className="relative w-full max-w-2xl bg-white/10 border border-white/20 rounded-lg shadow-2xl backdrop-blur-md flex flex-col max-h-[90vh]"
+          className="relative w-full max-w-2xl bg-white/10 border border-white/20 rounded-lg shadow-2xl backdrop-blur-md flex flex-col max-h-[90vh] animate-fadeIn"
         >
+          {/* Modal Header */}
           <div className="sticky top-0 flex items-center justify-between px-4 py-3 bg-white/10 border-b border-white/20 rounded-t-lg">
             <h3 className="text-lg font-semibold text-white">
               Confession & Replies
@@ -120,7 +129,7 @@ const Modal = memo(
 Modal.displayName = "Modal";
 
 // ----------------------
-// ReplyTextArea Component (Updated)
+// ReplyTextArea Component
 // ----------------------
 const ReplyTextArea = memo(
   ({
@@ -176,7 +185,7 @@ const ReplyTextArea = memo(
 ReplyTextArea.displayName = "ReplyTextArea";
 
 // ----------------------
-// MessageCard Component (Updated Upvote/Downvote)
+// MessageCard Component
 // ----------------------
 const MessageCard = memo(
   ({
@@ -199,15 +208,19 @@ const MessageCard = memo(
     const availableReactions = ["👍", "❤️", "😮"];
 
     return (
-      <div className="flex flex-col bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-4 shadow-md transition transform hover:scale-105 hover:shadow-xl">
+      <div
+        className="relative mb-6 break-inside-avoid bg-white/10 backdrop-blur-md border border-white/20 
+                   rounded-xl p-4 shadow-md transform transition-all duration-300 
+                   hover:shadow-2xl hover:-translate-y-1"
+      >
         <div
-          className="text-gray-100 text-base line-clamp-4"
-          style={{ minHeight: "100px", overflowY: "hidden" }}
+          className="text-gray-100 text-base md:line-clamp-4 leading-relaxed"
+          style={{ minHeight: "100px", overflow: "hidden" }}
         >
           {content || "No content available"}
         </div>
         <button
-          className="mt-3 self-start text-sm font-medium text-pink-300 hover:text-pink-200 transition"
+          className="mt-3 inline-block text-sm font-medium text-pink-300 hover:text-pink-200 transition"
           onClick={() => onOpen(docId, content)}
         >
           Read More
@@ -215,32 +228,34 @@ const MessageCard = memo(
 
         <div className="mt-3 flex flex-col gap-2">
           <div className="flex items-center space-x-2">
-            {/* Updated Vote Buttons */}
+            {/* Upvote Button */}
             <button
               onClick={() => onVote(docId, 1)}
-              className={`p-2 rounded transition ${
-                voteData?.userVote === 1
-                  ? "bg-blue-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
+              className={`p-2 rounded transition focus:outline-none 
+                ${
+                  voteData?.userVote === 1
+                    ? "bg-blue-700"
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
             >
               <HandThumbUpIcon className="w-5 h-5 text-white" />
             </button>
-            <span className="text-sm text-white">
-              {voteData?.total ?? 0}
-            </span>
+            <span className="text-sm text-white">{voteData?.total ?? 0}</span>
+            {/* Downvote Button */}
             <button
               onClick={() => onVote(docId, -1)}
-              className={`p-2 rounded transition ${
-                voteData?.userVote === -1
-                  ? "bg-purple-700"
-                  : "bg-purple-600 hover:bg-purple-700"
-              }`}
+              className={`p-2 rounded transition focus:outline-none 
+                ${
+                  voteData?.userVote === -1
+                    ? "bg-purple-700"
+                    : "bg-purple-600 hover:bg-purple-700"
+                }`}
             >
               <HandThumbDownIcon className="w-5 h-5 text-white" />
             </button>
           </div>
 
+          {/* Reactions Row */}
           <div className="flex items-center space-x-2">
             {availableReactions.map((emoji) => {
               const isSelected = reactionData?.[emoji]?.selected ?? false;
@@ -249,11 +264,12 @@ const MessageCard = memo(
                 <button
                   key={emoji}
                   onClick={() => onReact(docId, emoji)}
-                  className={`flex items-center px-2 py-1 rounded transition ${
-                    isSelected
-                      ? "bg-blue-700"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
+                  className={`flex items-center px-2 py-1 rounded transition focus:outline-none 
+                    ${
+                      isSelected
+                        ? "bg-blue-700"
+                        : "bg-gray-700 hover:bg-gray-600"
+                    }`}
                 >
                   <span className="mr-1">{emoji}</span>
                   <span className="text-sm">{count}</span>
@@ -343,6 +359,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     };
   }, []);
 
+  // Fetch posts
   useEffect(() => {
     const fetchPosts = async () => {
       try {
@@ -354,6 +371,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
           $id: string;
           message: string;
         }[];
+        // Reverse to show most recent first
         setPosts(postsData.reverse());
       } catch (err) {
         console.error("Error fetching posts:", err);
@@ -362,6 +380,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     fetchPosts();
   }, [databaseId, messagesCollectionId, databases]);
 
+  // Fetch votes
   const fetchVotes = useCallback(async () => {
     try {
       const response = await databases.listDocuments(
@@ -392,6 +411,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   }, [databases, databaseId, votesCollectionId, user]);
 
+  // Fetch reactions
   const fetchReactions = useCallback(async () => {
     try {
       const response = await databases.listDocuments(
@@ -424,12 +444,13 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
       console.error("Error fetching reactions:", err);
     }
   }, [databases, databaseId, reactionsCollectionId, user]);
-  
+
   useEffect(() => {
     fetchVotes();
     fetchReactions();
   }, [posts, fetchVotes, fetchReactions]);
 
+  // Handle new post
   const handlePost = async () => {
     if (!inputValue.trim()) return;
     try {
@@ -454,11 +475,13 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   };
 
+  // Open a message in modal
   const handleOpenMessage = async (docId: string, content: string) => {
     setSelectedMessageId(docId);
     setSelectedMessageContent(content);
     setIsModalOpen(true);
     setReplyInput("");
+
     try {
       const res = await databases.listDocuments(databaseId, repliesCollectionId);
       const allReplies = (res.documents as unknown as {
@@ -472,6 +495,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   };
 
+  // Handle reply to a message
   const handleReply = useCallback(async () => {
     if (!replyInput.trim()) return;
     try {
@@ -495,11 +519,19 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     } catch (err) {
       console.error("Error posting reply:", err);
     }
-  }, [databases, databaseId, repliesCollectionId, replyInput, selectedMessageId]);
-  
+  }, [
+    databases,
+    databaseId,
+    repliesCollectionId,
+    replyInput,
+    selectedMessageId,
+  ]);
+
+  // Handle upvote/downvote
   const handleVote = async (postId: string, newVoteValue: number) => {
     const voteData = votes[postId];
 
+    // If user hasn't voted on this post yet
     if (!voteData || !voteData.docId) {
       try {
         await databases.createDocument(
@@ -519,6 +551,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
       return;
     }
 
+    // If user is toggling off the same vote
     if (voteData.userVote === newVoteValue) {
       try {
         await databases.updateDocument(
@@ -534,6 +567,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
       return;
     }
 
+    // Otherwise, update vote to new value
     try {
       await databases.updateDocument(
         databaseId,
@@ -547,9 +581,11 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   };
 
+  // Handle reaction
   const handleReaction = async (postId: string, reaction: string) => {
     const reactionEntry = reactions[postId]?.[reaction];
     try {
+      // If user already reacted with this emoji, remove it
       if (reactionEntry && reactionEntry.selected && reactionEntry.docId) {
         await databases.deleteDocument(
           databaseId,
@@ -557,11 +593,17 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
           reactionEntry.docId
         );
       } else {
-        await databases.createDocument(databaseId, reactionsCollectionId, "unique()", {
-          postId,
-          reaction,
-          userId: user.$id,
-        });
+        // Otherwise, add the reaction
+        await databases.createDocument(
+          databaseId,
+          reactionsCollectionId,
+          "unique()",
+          {
+            postId,
+            reaction,
+            userId: user.$id,
+          }
+        );
       }
       fetchReactions();
     } catch (err) {
@@ -569,6 +611,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   };
 
+  // Sort posts
   const sortedPosts = useMemo(() => {
     const postsCopy = [...posts];
     if (sortOption === "recent") {
@@ -598,11 +641,11 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
   const renderModalContent = useMemo(
     () => (
       <>
-        <div className="flex-1 overflow-y-auto p-6">
-          <div className="text-gray-100 text-base whitespace-pre-wrap mb-6">
+        <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="text-gray-100 text-base whitespace-pre-wrap leading-relaxed">
             {selectedMessageContent}
           </div>
-          <div className="mb-6">
+          <div>
             <h4 className="text-md font-semibold mb-3 text-pink-300">
               Replies
             </h4>
@@ -628,11 +671,19 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
         />
       </>
     ),
-    [selectedMessageContent, replies, replyInput, handleReply, router, selectedMessageId]
+    [
+      selectedMessageContent,
+      replies,
+      replyInput,
+      handleReply,
+      router,
+      selectedMessageId,
+    ]
   );
 
   return (
-    <main className="min-h-screen flex flex-col bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
+    <main className="font-sans min-h-screen flex flex-col bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
+      {/* HEADER */}
       <header className="relative w-full py-16 px-4 text-center">
         <div className="max-w-3xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-4">
@@ -650,6 +701,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
         </div>
       </header>
 
+      {/* CONFESSION TEXTAREA */}
       <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-8">
         <section
           className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 mx-auto mb-12 shadow-xl"
@@ -673,86 +725,83 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
           </button>
         </section>
 
-        {/* Single "Sort By" button with dropdown */}
+        {/* SORT BY BUTTON + DROPDOWN */}
         <section className="mb-8 flex justify-center">
-  <div className="relative inline-block text-left">
-    {/* Toggle Button */}
-    <button
-      onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-      className="inline-flex items-center px-4 py-2 text-sm font-medium text-white 
-                 bg-pink-600 rounded-md hover:bg-pink-700 focus:outline-none 
-                 focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 
-                 focus:ring-pink-500 transition-colors"
-    >
-      Sort By:&nbsp;
-      {sortOption === "recent"
-        ? "Recent Confessions"
-        : sortOption === "upvotes"
-        ? "Highest Upvotes"
-        : "Most Reactions"}
-      <span className="ml-2">▼</span>
-    </button>
+          <div className="relative inline-block text-left">
+            <button
+              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
+              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white 
+                         bg-pink-600 rounded-md hover:bg-pink-700 focus:outline-none 
+                         focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 
+                         focus:ring-pink-500 transition-colors"
+            >
+              Sort By:&nbsp;
+              {sortOption === "recent"
+                ? "Recent Confessions"
+                : sortOption === "upvotes"
+                ? "Highest Upvotes"
+                : "Most Reactions"}
+              <span className="ml-2">▼</span>
+            </button>
+            {isSortMenuOpen && (
+              <div
+                className="absolute right-0 z-10 mt-2 w-48 origin-top-right 
+                           bg-white/10 backdrop-blur-md border border-white/20 
+                           rounded-md shadow-lg focus:outline-none animate-fadeIn"
+              >
+                <div className="py-1">
+                  <button
+                    onClick={() => {
+                      setSortOption("recent");
+                      setIsSortMenuOpen(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-sm text-white 
+                                hover:bg-pink-600 hover:text-white transition-colors 
+                                ${
+                                  sortOption === "recent"
+                                    ? "bg-pink-600 text-white"
+                                    : ""
+                                }`}
+                  >
+                    Recent Confessions
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortOption("upvotes");
+                      setIsSortMenuOpen(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-sm text-white 
+                                hover:bg-pink-600 hover:text-white transition-colors 
+                                ${
+                                  sortOption === "upvotes"
+                                    ? "bg-pink-600 text-white"
+                                    : ""
+                                }`}
+                  >
+                    Highest Upvotes
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSortOption("reactions");
+                      setIsSortMenuOpen(false);
+                    }}
+                    className={`block w-full text-left px-4 py-2 text-sm text-white 
+                                hover:bg-pink-600 hover:text-white transition-colors 
+                                ${
+                                  sortOption === "reactions"
+                                    ? "bg-pink-600 text-white"
+                                    : ""
+                                }`}
+                  >
+                    Most Reactions
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </section>
 
-    {/* Dropdown Menu */}
-    {isSortMenuOpen && (
-      <div
-        className="absolute right-0 z-10 mt-2 w-48 origin-top-right 
-                   bg-white/10 backdrop-blur-md border border-white/20 
-                   rounded-md shadow-lg focus:outline-none"
-      >
-        <div className="py-1">
-          <button
-            onClick={() => {
-              setSortOption("recent");
-              setIsSortMenuOpen(false);
-            }}
-            className={`block w-full text-left px-4 py-2 text-sm text-white 
-                        hover:bg-pink-600 hover:text-white transition-colors 
-                        ${
-                          sortOption === "recent"
-                            ? "bg-pink-600 text-white"
-                            : ""
-                        }`}
-          >
-            Recent Confessions
-          </button>
-          <button
-            onClick={() => {
-              setSortOption("upvotes");
-              setIsSortMenuOpen(false);
-            }}
-            className={`block w-full text-left px-4 py-2 text-sm text-white 
-                        hover:bg-pink-600 hover:text-white transition-colors 
-                        ${
-                          sortOption === "upvotes"
-                            ? "bg-pink-600 text-white"
-                            : ""
-                        }`}
-          >
-            Highest Upvotes
-          </button>
-          <button
-            onClick={() => {
-              setSortOption("reactions");
-              setIsSortMenuOpen(false);
-            }}
-            className={`block w-full text-left px-4 py-2 text-sm text-white 
-                        hover:bg-pink-600 hover:text-white transition-colors 
-                        ${
-                          sortOption === "reactions"
-                            ? "bg-pink-600 text-white"
-                            : ""
-                        }`}
-          >
-            Most Reactions
-          </button>
-        </div>
-      </div>
-    )}
-  </div>
-</section>
-
-
+        {/* POSTS MASONRY LAYOUT */}
         <section>
           <h2 className="text-2xl font-bold text-gray-200 mb-6">
             {sortOption === "recent"
@@ -762,7 +811,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
               : "Confessions with Most Reactions"}
           </h2>
           {sortedPosts.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
               {sortedPosts.map((post) => (
                 <MessageCard
                   key={post.$id}
@@ -784,6 +833,7 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
         </section>
       </div>
 
+      {/* MODAL */}
       <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
         {renderModalContent}
       </Modal>
