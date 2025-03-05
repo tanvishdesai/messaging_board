@@ -8,19 +8,44 @@ import React, {
   useCallback,
 } from "react";
 import { useRouter } from "next/navigation";
-import { Client, Account, Databases } from "appwrite";
-import Typed from "typed.js";
+import { Client, Account, Databases, Query, ID } from "appwrite";
+
 import {
   HandThumbUpIcon,
   HandThumbDownIcon,
   ShareIcon,
 } from "@heroicons/react/24/solid";
 
+// Import our new components
+import CampusNavbar from './components/CampusNavbar';
+import CampusFeed from './components/CampusFeed';
+import CampusComposer from './components/CampusComposer';
+import CampusModal from './components/CampusModal';
+import MessageDetails from './components/MessageDetails';
+
 interface AppwriteUser {
   $id?: string;
   name?: string;
   email?: string;
 }
+
+// Add CSS animations
+
+// Add these type definitions before the component
+interface VoteDocument {
+  $id: string;
+  postId: string;
+  userId: string;
+  vote: number; // 1 for upvote, -1 for downvote
+}
+
+interface VoteInfo {
+  upvotes: number;
+  downvotes: number;
+  userVoted: number | null;
+}
+
+type VotesMap = Record<string, VoteInfo>;
 
 export default function Home() {
   const router = useRouter();
@@ -46,30 +71,23 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
-        Loading...
+      <div className="min-h-screen bg-gray-50 dark:bg-gray-900 flex flex-col items-center justify-center">
+        <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4"></div>
+        <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-1">Loading Campus Whispers</h2>
+        <p className="text-gray-500 dark:text-gray-400">Connecting to your campus community...</p>
       </div>
     );
   }
 
-  return <ConfessionsPage user={user!} />;
+  return <CampusWhispersPage user={user!} />;
 }
 
-interface ConfessionsPageProps {
+interface CampusWhispersPageProps {
   user: AppwriteUser;
 }
 
-type VoteInfo = {
-  total: number;
-  userVote: number | null;
-  docId?: string;
-};
 
-type ReactionEntry = {
-  count: number;
-  selected: boolean;
-  docId?: string;
-};
+type Category = 'general' | 'academics' | 'social' | 'housing' | 'food' | 'sports' | 'events' | 'all';
 
 // ----------------------
 // Modal Component
@@ -185,118 +203,31 @@ const ReplyTextArea = memo(
 ReplyTextArea.displayName = "ReplyTextArea";
 
 // ----------------------
-// MessageCard Component
-// ----------------------
-const MessageCard = memo(
-  ({
-    docId,
-    content,
-    onOpen,
-    voteData,
-    reactionData,
-    onVote,
-    onReact,
-  }: {
-    docId: string;
-    content: string;
-    onOpen: (docId: string, content: string) => void;
-    voteData?: VoteInfo;
-    reactionData?: { [reaction: string]: ReactionEntry };
-    onVote: (docId: string, voteValue: number) => void;
-    onReact: (docId: string, reaction: string) => void;
-  }) => {
-    const availableReactions = ["👍", "❤️", "😮"];
-
-    return (
-      <div
-        className="relative mb-6 break-inside-avoid bg-white/10 backdrop-blur-md border border-white/20 
-                   rounded-xl p-4 shadow-md transform transition-all duration-300 
-                   hover:shadow-2xl hover:-translate-y-1"
-      >
-        <div
-          className="text-gray-100 text-base md:line-clamp-4 leading-relaxed"
-          style={{ minHeight: "100px", overflow: "hidden" }}
-        >
-          {content || "No content available"}
-        </div>
-        <button
-          className="mt-3 inline-block text-sm font-medium text-pink-300 hover:text-pink-200 transition"
-          onClick={() => onOpen(docId, content)}
-        >
-          Read More
-        </button>
-
-        <div className="mt-3 flex flex-col gap-2">
-          <div className="flex items-center space-x-2">
-            {/* Upvote Button */}
-            <button
-              onClick={() => onVote(docId, 1)}
-              className={`p-2 rounded transition focus:outline-none 
-                ${
-                  voteData?.userVote === 1
-                    ? "bg-blue-700"
-                    : "bg-blue-600 hover:bg-blue-700"
-                }`}
-            >
-              <HandThumbUpIcon className="w-5 h-5 text-white" />
-            </button>
-            <span className="text-sm text-white">{voteData?.total ?? 0}</span>
-            {/* Downvote Button */}
-            <button
-              onClick={() => onVote(docId, -1)}
-              className={`p-2 rounded transition focus:outline-none 
-                ${
-                  voteData?.userVote === -1
-                    ? "bg-purple-700"
-                    : "bg-purple-600 hover:bg-purple-700"
-                }`}
-            >
-              <HandThumbDownIcon className="w-5 h-5 text-white" />
-            </button>
-          </div>
-
-          {/* Reactions Row */}
-          <div className="flex items-center space-x-2">
-            {availableReactions.map((emoji) => {
-              const isSelected = reactionData?.[emoji]?.selected ?? false;
-              const count = reactionData?.[emoji]?.count ?? 0;
-              return (
-                <button
-                  key={emoji}
-                  onClick={() => onReact(docId, emoji)}
-                  className={`flex items-center px-2 py-1 rounded transition focus:outline-none 
-                    ${
-                      isSelected
-                        ? "bg-blue-700"
-                        : "bg-gray-700 hover:bg-gray-600"
-                    }`}
-                >
-                  <span className="mr-1">{emoji}</span>
-                  <span className="text-sm">{count}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    );
-  }
-);
-MessageCard.displayName = "MessageCard";
-
-// ----------------------
 // ConfessionsPage Component
 // ----------------------
-function ConfessionsPage({ user }: ConfessionsPageProps) {
+const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const router = useRouter();
-  const client = useMemo(() => {
+  const client = React.useMemo(() => {
+    console.log('Initializing Appwrite client...');
+    console.log('Environment variables check:', {
+      hasEndpoint: !!process.env.NEXT_PUBLIC_AW_ENDPOINT,
+      hasProjectId: !!process.env.NEXT_PUBLIC_AW_PROJECT_ID,
+      hasDatabaseId: !!process.env.NEXT_PUBLIC_AW_DATABASE_ID,
+      hasCollectionId: !!process.env.NEXT_PUBLIC_AW_COLLECTION_ID,
+      hasRepliesCollectionId: !!process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID
+    });
+    
     return new Client()
       .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
       .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
   }, []);
 
-  const databases = useMemo(() => new Databases(client), [client]);
+  const databases = React.useMemo(() => {
+    console.log('Creating database instance...');
+    return new Databases(client);
+  }, [client]);
 
+  // Check environment variables
   if (
     !process.env.NEXT_PUBLIC_AW_PROJECT_ID ||
     !process.env.NEXT_PUBLIC_AW_DATABASE_ID ||
@@ -306,6 +237,15 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     !process.env.NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID ||
     !process.env.NEXT_PUBLIC_AW_ENDPOINT
   ) {
+    console.error('Missing required environment variables:', {
+      NEXT_PUBLIC_AW_PROJECT_ID: !!process.env.NEXT_PUBLIC_AW_PROJECT_ID,
+      NEXT_PUBLIC_AW_DATABASE_ID: !!process.env.NEXT_PUBLIC_AW_DATABASE_ID,
+      NEXT_PUBLIC_AW_COLLECTION_ID: !!process.env.NEXT_PUBLIC_AW_COLLECTION_ID,
+      NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID: !!process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID,
+      NEXT_PUBLIC_AW_VOTES_COLLECTION_ID: !!process.env.NEXT_PUBLIC_AW_VOTES_COLLECTION_ID,
+      NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID: !!process.env.NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID,
+      NEXT_PUBLIC_AW_ENDPOINT: !!process.env.NEXT_PUBLIC_AW_ENDPOINT
+    });
     throw new Error("Required environment variables are not set");
   }
 
@@ -313,103 +253,315 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
   const messagesCollectionId = process.env.NEXT_PUBLIC_AW_COLLECTION_ID;
   const repliesCollectionId = process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID;
   const votesCollectionId = process.env.NEXT_PUBLIC_AW_VOTES_COLLECTION_ID;
-  const reactionsCollectionId =
-    process.env.NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID;
+  const reactionsCollectionId = process.env.NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID;
 
-  const [inputValue, setInputValue] = useState("");
-  const [posts, setPosts] = useState<{ $id: string; message: string }[]>([]);
+  // State
+  const [posts, setPosts] = useState<{ 
+    $id: string; 
+    message: string; 
+    createdAt: string;
+    category: Category;
+    isAnonymous: boolean;
+    userId?: string;
+  }[]>([]);
+  
+  const [votes, setVotes] = useState<VotesMap>({});
+  const [reactions, setReactions] = useState<{
+    [postId: string]: {
+      [reaction: string]: {
+        count: number;
+        userReacted: boolean;
+      };
+    };
+  }>({});
+  const [replies, setReplies] = useState<{ [postId: string]: number }>({});
+  const [replyCountMap, setReplyCountMap] = useState<{ [postId: string]: number }>({});
+  
+  // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedMessageId, setSelectedMessageId] = useState<string>("");
-  const [selectedMessageContent, setSelectedMessageContent] = useState<string>(
-    ""
-  );
-  const [replies, setReplies] = useState<
-    { $id: string; messageId: string; reply: string }[]
-  >([]);
+  const [selectedMessageContent, setSelectedMessageContent] = useState<string>("");
+  const [selectedMessageReplies, setSelectedMessageReplies] = useState<{
+    id: string;
+    content: string;
+    timestamp: string;
+    userId: string;
+    userName?: string;
+    isAnonymous: boolean;
+    votes: number;
+  }[]>([]);
+  
+  const [isComposerOpen, setIsComposerOpen] = useState(false);
+  const [isComposerMinimized, setIsComposerMinimized] = useState(true);
+  const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
   const [replyInput, setReplyInput] = useState("");
-  const [votes, setVotes] = useState<{ [postId: string]: VoteInfo }>({});
-  const [reactions, setReactions] = useState<{
-    [postId: string]: { [reaction: string]: ReactionEntry };
-  }>({});
-
-  // Sorting state
-  const [sortOption, setSortOption] = useState<
-    "recent" | "upvotes" | "reactions"
-  >("recent");
-  const [isSortMenuOpen, setIsSortMenuOpen] = useState(false);
-
-  const typedRef = useRef<HTMLParagraphElement>(null);
-
-  useEffect(() => {
-    const typed = new Typed(typedRef.current as Element, {
-      strings: [
-        "confess your love",
-        "share your feelings",
-        "confess your heart",
-      ],
-      typeSpeed: 80,
-      loop: true,
-      showCursor: true,
-      cursorChar: "|",
-      backDelay: 1000,
-      startDelay: 300,
-    });
-    return () => {
-      typed.destroy();
-    };
-  }, []);
-
+  
+  // Theme state - dark mode handled by CampusNavbar
+  const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
+  
+  // Add loading state
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRepliesLoading, setIsRepliesLoading] = useState(true);
+  
+  // Add selected category state
+  const [selectedCategory, setSelectedCategory] = useState<Category>('general');
+  
   // Fetch posts
-  useEffect(() => {
-    const fetchPosts = async () => {
-      try {
+  const fetchAllPosts = async () => {
+    try {
+      setIsLoading(true);
+      console.log("Fetching all posts...");
+      
+      // Track all documents across multiple pages
+      let allDocuments: any[] = [];
+      let currentPage = 0;
+      let hasMorePages = true;
+      
+      // Use Appwrite Query for pagination
+      const limit = 100; // Increase limit to reduce number of API calls
+      
+      // Fetch pages until we have all documents
+      while (hasMorePages) {
+        console.log(`Fetching page ${currentPage + 1}...`);
+        
+        // Call with pagination parameters
         const response = await databases.listDocuments(
           databaseId,
-          messagesCollectionId
+          messagesCollectionId,
+          [
+            // Set the limit (max 100 per request)
+            Query.limit(limit),
+            // Skip already fetched documents
+            Query.offset(currentPage * limit),
+            // Sort by creation date
+            Query.orderDesc('createdAt')
+          ]
         );
-        const postsData = response.documents as unknown as {
-          $id: string;
-          message: string;
-        }[];
-        // Reverse to show most recent first
-        setPosts(postsData.reverse());
-      } catch (err) {
-        console.error("Error fetching posts:", err);
+        
+        // Add documents from this page to our collection
+        allDocuments = [...allDocuments, ...response.documents];
+        
+        // Check if we've reached the end
+        if (response.documents.length < limit) {
+          hasMorePages = false;
+        } else {
+          currentPage++;
+        }
+      }
+      
+      console.log("Total fetched posts count:", allDocuments.length);
+      
+      const postsData = allDocuments as unknown as {
+        $id: string;
+        message: string;
+        createdAt: string;
+        category: Category;
+        isAnonymous: boolean;
+        userId?: string;
+      }[];
+      
+      // Update state with all posts
+      setPosts(postsData);
+      setIsLoading(false);
+      return postsData;
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+      setIsLoading(false);
+      return [];
+    }
+  };
+  
+  // Initialize data
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const initializeData = async () => {
+      try {
+        const fetchedPosts = await fetchAllPosts();
+        if (!isSubscribed) return;
+
+        if (fetchedPosts.length > 0) {
+          await Promise.all([
+            fetchVotes(),
+            fetchReactions(),
+            fetchReplyCounts()
+          ]);
+        }
+      } catch (error) {
+        console.error('Error initializing data:', error);
       }
     };
-    fetchPosts();
-  }, [databaseId, messagesCollectionId, databases]);
+
+    initializeData();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, []); // Run only on mount
+
+  // Set up periodic refresh
+  useEffect(() => {
+    const refreshInterval = setInterval(async () => {
+      if (!isLoading) {
+        console.log('Refreshing data...');
+        await fetchAllPosts();
+        if (posts.length > 0) {
+          await Promise.all([
+            fetchVotes(),
+            fetchReactions(),
+            fetchReplyCounts()
+          ]);
+        }
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [isLoading]);
 
   // Fetch votes
-  const fetchVotes = useCallback(async () => {
+  const fetchVotes = async () => {
     try {
+      console.log('Fetching votes...');
       const response = await databases.listDocuments(
         databaseId,
-        votesCollectionId
+        votesCollectionId,
+        [
+          Query.limit(100), // Increase limit to get more votes
+          Query.orderDesc('$createdAt')
+        ]
       );
-      const votesData = response.documents as unknown as {
-        $id: string;
-        postId: string;
-        vote: number;
-        userId: string;
-      }[];
-      const votesMap: { [postId: string]: VoteInfo } = {};
-      votesData.forEach((doc) => {
-        const { postId, vote, userId, $id } = doc;
-        if (!votesMap[postId]) {
-          votesMap[postId] = { total: 0, userVote: null };
+
+      const allVotes = response.documents as unknown as VoteDocument[];
+      const newVotesMap: VotesMap = {};
+
+      console.log('Processing votes:', allVotes.length);
+
+      // Initialize votes map for all posts
+      posts.forEach(post => {
+        newVotesMap[post.$id] = {
+          upvotes: 0,
+          downvotes: 0,
+          userVoted: null
+        };
+      });
+
+      // Process votes
+      allVotes.forEach(vote => {
+        if (!vote.postId || !vote.vote) return;
+        
+        if (!newVotesMap[vote.postId]) {
+          newVotesMap[vote.postId] = {
+            upvotes: 0,
+            downvotes: 0,
+            userVoted: null
+          };
         }
-        votesMap[postId].total += vote;
-        if (userId === user.$id) {
-          votesMap[postId].userVote = vote;
-          votesMap[postId].docId = $id;
+
+        if (vote.vote === 1) {
+          newVotesMap[vote.postId].upvotes++;
+        } else if (vote.vote === -1) {
+          newVotesMap[vote.postId].downvotes++;
+        }
+
+        // Track user's vote
+        if (vote.userId === user.$id) {
+          newVotesMap[vote.postId].userVoted = vote.vote;
         }
       });
-      setVotes(votesMap);
-    } catch (err) {
-      console.error("Error fetching votes:", err);
+
+      console.log('Setting votes:', newVotesMap);
+      setVotes(newVotesMap);
+    } catch (error) {
+      console.error('Error fetching votes:', error);
     }
-  }, [databases, databaseId, votesCollectionId, user]);
+  };
+
+  // Voting handler with optimistic updates
+  const handleVote = async (postId: string, voteType: 'up' | 'down') => {
+    if (!user || !postId || !user.$id) return;
+    
+    try {
+      // Convert vote type to number
+      const voteValue = voteType === 'up' ? 1 : -1;
+
+      // Optimistically update UI
+      setVotes(prevVotes => {
+        const postVotes = prevVotes[postId] || { upvotes: 0, downvotes: 0, userVoted: null };
+        const newPostVotes = { ...postVotes };
+
+        // Remove previous vote if exists
+        if (postVotes.userVoted === 1) newPostVotes.upvotes--;
+        if (postVotes.userVoted === -1) newPostVotes.downvotes--;
+
+        // If clicking same vote type, remove vote
+        if (postVotes.userVoted === voteValue) {
+          newPostVotes.userVoted = null;
+        } else {
+          // Add new vote
+          if (voteValue === 1) newPostVotes.upvotes++;
+          if (voteValue === -1) newPostVotes.downvotes++;
+          newPostVotes.userVoted = voteValue;
+        }
+
+        return {
+          ...prevVotes,
+          [postId]: newPostVotes
+        };
+      });
+
+      // Create vote data
+      const voteData = {
+        vote: voteValue,
+        userId: user.$id,
+        postId: postId
+      };
+
+      // Check for existing vote
+      const existingVotes = await databases.listDocuments(
+        databaseId,
+        votesCollectionId,
+        [
+          Query.equal('userId', user.$id),
+          Query.equal('postId', postId)
+        ]
+      );
+
+      if (existingVotes.documents.length > 0) {
+        const existingVote = existingVotes.documents[0];
+        if (existingVote.vote === voteValue) {
+          // Remove vote if same type
+          await databases.deleteDocument(
+            databaseId,
+            votesCollectionId,
+            existingVote.$id
+          );
+        } else {
+          // Update to new vote value
+          await databases.updateDocument(
+            databaseId,
+            votesCollectionId,
+            existingVote.$id,
+            voteData
+          );
+        }
+      } else {
+        // Create new vote
+        await databases.createDocument(
+          databaseId,
+          votesCollectionId,
+          ID.unique(),
+          voteData
+        );
+      }
+
+      // Refetch votes to ensure consistency
+      await fetchVotes();
+    } catch (error) {
+      console.error('Error voting:', error);
+      // Revert optimistic update on error
+      await fetchVotes();
+    }
+  };
 
   // Fetch reactions
   const fetchReactions = useCallback(async () => {
@@ -425,18 +577,28 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
         userId: string;
       }[];
       const reactionsMap: {
-        [postId: string]: { [reaction: string]: ReactionEntry };
+        [postId: string]: {
+          [reaction: string]: {
+            count: number;
+            userReacted: boolean;
+          };
+        };
       } = {};
+      
       reactionsData.forEach((doc) => {
-        const { postId, reaction, userId, $id } = doc;
-        if (!reactionsMap[postId]) reactionsMap[postId] = {};
+        const { postId, reaction, userId } = doc;
+        if (!reactionsMap[postId]) {
+          reactionsMap[postId] = {};
+        }
         if (!reactionsMap[postId][reaction]) {
-          reactionsMap[postId][reaction] = { count: 0, selected: false };
+          reactionsMap[postId][reaction] = {
+            count: 0,
+            userReacted: false
+          };
         }
         reactionsMap[postId][reaction].count++;
         if (userId === user.$id) {
-          reactionsMap[postId][reaction].selected = true;
-          reactionsMap[postId][reaction].docId = $id;
+          reactionsMap[postId][reaction].userReacted = true;
         }
       });
       setReactions(reactionsMap);
@@ -445,398 +607,426 @@ function ConfessionsPage({ user }: ConfessionsPageProps) {
     }
   }, [databases, databaseId, reactionsCollectionId, user]);
 
-  useEffect(() => {
-    fetchVotes();
-    fetchReactions();
-  }, [posts, fetchVotes, fetchReactions]);
-
-  // Handle new post
-  const handlePost = async () => {
-    if (!inputValue.trim()) return;
+  // Fetch reply counts
+  const fetchReplyCounts = useCallback(async () => {
     try {
-      await databases.createDocument(
-        databaseId,
-        messagesCollectionId,
-        "unique()",
-        { message: inputValue }
-      );
       const response = await databases.listDocuments(
         databaseId,
-        messagesCollectionId
+        repliesCollectionId
       );
-      const postsData = response.documents as unknown as {
-        $id: string;
-        message: string;
-      }[];
-      setPosts(postsData.reverse());
-      setInputValue("");
-    } catch (err) {
-      console.error("Error posting content:", err);
-    }
-  };
-
-  // Open a message in modal
-  const handleOpenMessage = async (docId: string, content: string) => {
-    setSelectedMessageId(docId);
-    setSelectedMessageContent(content);
-    setIsModalOpen(true);
-    setReplyInput("");
-
-    try {
-      const res = await databases.listDocuments(databaseId, repliesCollectionId);
-      const allReplies = (res.documents as unknown as {
+      const repliesData = response.documents as unknown as {
         $id: string;
         messageId: string;
         reply: string;
-      }[]).filter((r) => r.messageId === docId);
-      setReplies(allReplies);
+      }[];
+      
+      const replyCounts: { [postId: string]: number } = {};
+      repliesData.forEach((doc) => {
+        const { messageId } = doc;
+        if (!replyCounts[messageId]) {
+          replyCounts[messageId] = 0;
+        }
+        replyCounts[messageId]++;
+      });
+      
+      setReplyCountMap(replyCounts);
     } catch (err) {
-      console.error("Error fetching replies:", err);
+      console.error("Error fetching reply counts:", err);
+    }
+  }, [databases, databaseId, repliesCollectionId]);
+
+  // Handle new post creation
+  const handleCreatePost = async (message: string, isAnonymous: boolean, category: Category) => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      
+      await fetchAllPosts();
+      setIsComposeModalOpen(false);
+      
+      return Promise.resolve();
+    } catch (err) {
+      console.error("Error posting message:", err);
+      return Promise.reject(err);
     }
   };
-
-  // Handle reply to a message
-  const handleReply = useCallback(async () => {
-    if (!replyInput.trim()) return;
+  // Handle reply submission
+  const handleReply = async (replyText: string) => {
+    console.group('Reply Submission Process');
+    console.log('Initial Check: ', {
+      replyText: replyText,
+      selectedMessageId: selectedMessageId,
+      userId: user?.$id,
+      userExists: !!user
+    });
+  
+    // Initial validation checks with detailed logging
+    if (!replyText.trim()) {
+      console.warn('Reply submission failed: Empty reply text');
+      return false;
+    }
+  
+    if (!selectedMessageId) {
+      console.error('Reply submission failed: No selected message ID');
+      return false;
+    }
+  
+    if (!user?.$id) {
+      console.error('Reply submission failed: No user ID - user not logged in');
+      return false;
+    }
+  
     try {
-      await databases.createDocument(
+      console.log('Preparing to create reply document', {
         databaseId,
         repliesCollectionId,
-        "unique()",
+        messageId: selectedMessageId,
+        userId: user.$id
+      });
+  
+      const newReply = await databases.createDocument(
+        databaseId,
+        repliesCollectionId,
+        ID.unique(),
         {
           messageId: selectedMessageId,
-          reply: replyInput,
+          reply: replyText.trim(),
+          isAnonymous: true,
+          userId: user.$id,
+          createdAt: new Date().toISOString()
         }
       );
-      const res = await databases.listDocuments(databaseId, repliesCollectionId);
-      const allReplies = (res.documents as unknown as {
-        $id: string;
-        messageId: string;
-        reply: string;
-      }[]).filter((r) => r.messageId === selectedMessageId);
-      setReplies(allReplies);
-      setReplyInput("");
+  
+      console.log('Reply document created successfully', {
+        replyId: newReply.$id,
+        content: replyText.trim()
+      });
+  
+      // Update UI state
+      setSelectedMessageReplies(prev => {
+        const updatedReplies = [{
+          id: newReply.$id,
+          content: replyText.trim(),
+          timestamp: newReply.createdAt,
+          userId: user.$id || 'anonymous',
+          userName: undefined,
+          isAnonymous: true,
+          votes: 0
+        }, ...prev];
+  
+        console.log('Updated replies state', {
+          previousRepliesCount: prev.length,
+          newRepliesCount: updatedReplies.length
+        });
+  
+        return updatedReplies;
+      });
+  
+      // Update reply counts
+      setReplyCountMap(prev => {
+        const updatedCountMap = {
+          ...prev,
+          [selectedMessageId]: (prev[selectedMessageId] || 0) + 1
+        };
+  
+        console.log('Updated reply count', {
+          previousCount: prev[selectedMessageId] || 0,
+          newCount: updatedCountMap[selectedMessageId]
+        });
+  
+        return updatedCountMap;
+      });
+  
+      console.groupEnd();
+      return true;
     } catch (err) {
-      console.error("Error posting reply:", err);
+      console.error('Detailed Error in Reply Submission:', err);
+      console.log('Error Details', {
+        name: err instanceof Error ? err.name : 'Unknown',
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : 'No stack trace'
+      });
+      console.groupEnd();
+      return false;
     }
-  }, [
-    databases,
-    databaseId,
-    repliesCollectionId,
-    replyInput,
-    selectedMessageId,
-  ]);
-
-  // Handle upvote/downvote
-  const handleVote = async (postId: string, newVoteValue: number) => {
-    const voteData = votes[postId];
-
-    // If user hasn't voted on this post yet
-    if (!voteData || !voteData.docId) {
-      try {
-        await databases.createDocument(
-          databaseId,
-          votesCollectionId,
-          "unique()",
-          {
-            postId,
-            userId: user.$id,
-            vote: newVoteValue,
-          }
-        );
-        fetchVotes();
-      } catch (err) {
-        console.error("Error creating vote doc:", err);
-      }
-      return;
-    }
-
-    // If user is toggling off the same vote
-    if (voteData.userVote === newVoteValue) {
-      try {
-        await databases.updateDocument(
-          databaseId,
-          votesCollectionId,
-          voteData.docId,
-          { vote: 0 }
-        );
-        fetchVotes();
-      } catch (err) {
-        console.error("Error removing vote:", err);
-      }
-      return;
-    }
-
-    // Otherwise, update vote to new value
+  };
+  // Handle opening a message
+  const handleOpenMessage = async (postId: string, content?: string) => {
+    console.log('handleOpenMessage started:', { postId, content });
     try {
-      await databases.updateDocument(
+      // Set all state updates together to reduce re-renders
+      const stateUpdates = {
+        selectedMessageId: postId,
+        selectedMessageContent: content || '',
+        isModalOpen: true,
+        isRepliesLoading: true,
+        selectedMessageReplies: []
+      };
+
+      // Batch state updates
+      setSelectedMessageId(stateUpdates.selectedMessageId);
+      setSelectedMessageContent(stateUpdates.selectedMessageContent);
+      setIsModalOpen(stateUpdates.isModalOpen);
+      setIsRepliesLoading(stateUpdates.isRepliesLoading);
+      setSelectedMessageReplies(stateUpdates.selectedMessageReplies);
+      
+      console.log('Fetching replies from database...');
+      const response = await databases.listDocuments(
         databaseId,
-        votesCollectionId,
-        voteData.docId,
-        { vote: newVoteValue }
+        repliesCollectionId,
+        [
+          Query.equal('messageId', postId),
+          Query.orderDesc('$createdAt'),
+          Query.limit(100)
+        ]
       );
-      fetchVotes();
-    } catch (err) {
-      console.error("Error updating vote:", err);
+      
+      console.log('Processing replies...', { count: response.documents.length });
+      const formattedReplies = response.documents.map(reply => ({
+        id: reply.$id,
+        content: reply.content || reply.reply,
+        timestamp: reply.createdAt,
+        userId: reply.userId || 'anonymous',
+        userName: undefined,
+        isAnonymous: true,
+        votes: 0
+      }));
+      
+      // Update replies and loading state together
+      setSelectedMessageReplies(formattedReplies);
+      setIsRepliesLoading(false);
+      
+      console.log('handleOpenMessage completed successfully');
+    } catch (error) {
+      console.error("Detailed error in handleOpenMessage:", error);
+      console.error("Error stack:", error instanceof Error ? error.stack : 'No stack trace');
+      
+      // Reset state on error
+      setIsRepliesLoading(false);
+      setIsModalOpen(false);
+      setSelectedMessageId('');
+      setSelectedMessageContent('');
+      setSelectedMessageReplies([]);
     }
   };
 
   // Handle reaction
   const handleReaction = async (postId: string, reaction: string) => {
-    const reactionEntry = reactions[postId]?.[reaction];
+    if (!postId || !reaction || !user?.$id) return;
+    
     try {
-      // If user already reacted with this emoji, remove it
-      if (reactionEntry && reactionEntry.selected && reactionEntry.docId) {
+      const existingReactions = await databases.listDocuments(
+        databaseId,
+        reactionsCollectionId,
+        [
+          Query.equal('postId', postId),
+          Query.equal('userId', user.$id as string),
+          Query.equal('reaction', reaction)
+        ]
+      );
+
+      if (existingReactions.documents.length > 0) {
+        // Remove reaction
         await databases.deleteDocument(
           databaseId,
           reactionsCollectionId,
-          reactionEntry.docId
+          existingReactions.documents[0].$id
         );
       } else {
-        // Otherwise, add the reaction
+        // Add reaction
         await databases.createDocument(
           databaseId,
           reactionsCollectionId,
           "unique()",
           {
             postId,
-            reaction,
             userId: user.$id,
+            reaction,
           }
         );
       }
-      fetchReactions();
+      
+      // Fetch reactions again to update UI
+      await fetchReactions();
     } catch (err) {
-      console.error("Error posting reaction:", err);
+      console.error("Error handling reaction:", err);
+    }
+  };
+  
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await new Account(client).deleteSession('current');
+      router.push('/signin');
+    } catch (err) {
+      console.error("Error logging out:", err);
     }
   };
 
-  // Sort posts
-  const sortedPosts = useMemo(() => {
-    const postsCopy = [...posts];
-    if (sortOption === "recent") {
-      return postsCopy;
-    } else if (sortOption === "upvotes") {
-      return postsCopy.sort((a, b) => {
-        const aVotes = votes[a.$id]?.total || 0;
-        const bVotes = votes[b.$id]?.total || 0;
-        return bVotes - aVotes;
-      });
-    } else if (sortOption === "reactions") {
-      return postsCopy.sort((a, b) => {
-        const aReactions = Object.values(reactions[a.$id] || {}).reduce(
-          (sum, { count }) => sum + count,
-          0
-        );
-        const bReactions = Object.values(reactions[b.$id] || {}).reduce(
-          (sum, { count }) => sum + count,
-          0
-        );
-        return bReactions - aReactions;
-      });
-    }
-    return postsCopy;
-  }, [posts, sortOption, votes, reactions]);
+  // Convert old vote handling to new interface
+  const handleUpvote = (postId: string) => {
+    handleVote(postId, 'up');
+  };
 
-  const renderModalContent = useMemo(
-    () => (
-      <>
-        <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <div className="text-gray-100 text-base whitespace-pre-wrap leading-relaxed">
-            {selectedMessageContent}
-          </div>
-          <div>
-            <h4 className="text-md font-semibold mb-3 text-pink-300">
-              Replies
-            </h4>
-            {replies.length > 0 ? (
-              replies.map((r) => (
-                <div
-                  key={r.$id}
-                  className="bg-white/10 backdrop-blur-md border border-white/20 p-3 rounded-md mb-2 text-gray-100"
-                >
-                  {r.reply}
-                </div>
-              ))
-            ) : (
-              <p className="text-gray-400">No replies yet. Be the first!</p>
-            )}
-          </div>
-        </div>
-        <ReplyTextArea
-          value={replyInput}
-          onChange={setReplyInput}
-          onSubmit={handleReply}
-          onShare={() => router.push(`/confessions/${selectedMessageId}`)}
-        />
-      </>
-    ),
-    [
-      selectedMessageContent,
-      replies,
-      replyInput,
-      handleReply,
-      router,
-      selectedMessageId,
-    ]
-  );
+  const handleDownvote = (postId: string) => {
+    handleVote(postId, 'down');
+  };
+
+  // Update the reply type to match MessageDetails expectations
+
+  // Update the vote handling to use correct types
+  const handleVoteForMessage = (value: number) => {
+    if (selectedMessageId) {
+      // Convert numeric vote to up/down
+      handleVote(selectedMessageId, value >= 0 ? 'up' : 'down');
+    }
+  };
+
+  // Convert votes for CampusFeed component
+  const convertVotesForFeed = (votesMap: VotesMap): Record<string, { upvotes: number; downvotes: number; userVoted: 'up' | 'down' | null }> => {
+    const converted: Record<string, { upvotes: number; downvotes: number; userVoted: 'up' | 'down' | null }> = {};
+    
+    for (const [postId, voteInfo] of Object.entries(votesMap)) {
+      converted[postId] = {
+        upvotes: voteInfo.upvotes || 0,
+        downvotes: voteInfo.downvotes || 0,
+        userVoted: voteInfo.userVoted === 1 ? 'up' : voteInfo.userVoted === -1 ? 'down' : null
+      };
+    }
+    
+    return converted;
+  };
+
+  // Create a wrapper for CampusFeed's onCreatePost
+  const handleCreatePostForFeed = (message: string, category: Category, isAnonymous: boolean) => {
+    return handleCreatePost(message, isAnonymous, category);
+  };
+
+  // Create a wrapper function for onReply to match expected signature
 
   return (
-    <main className="font-sans min-h-screen flex flex-col bg-gradient-to-br from-[#1f1b2e] via-[#1a1822] to-black text-white">
-      {/* HEADER */}
-      <header className="relative w-full py-16 px-4 text-center">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-extrabold leading-tight mb-4">
-            Anonymous Confessions
-          </h1>
-          <p className="text-xl text-gray-300 mb-8">
-            Where your secrets are safe and hearts can speak freely
-          </p>
-          <div className="flex items-center justify-center">
-            <p
-              className="text-2xl font-bold text-pink-500 leading-none h-8"
-              ref={typedRef}
-            ></p>
-          </div>
-        </div>
-      </header>
-
-      {/* CONFESSION TEXTAREA */}
-      <div className="flex-1 max-w-5xl w-full mx-auto px-4 py-8">
-        <section
-          className="bg-white/10 backdrop-blur-md border border-white/20 rounded-lg p-6 mx-auto mb-12 shadow-xl"
-          style={{ maxWidth: "600px" }}
-        >
-          <h2 className="text-xl font-semibold mb-4 text-pink-300">
-            Share a New Confession
-          </h2>
-          <textarea
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            placeholder="Confess your feelings anonymously..."
-            className="w-full p-3 mb-4 bg-transparent border border-white/30 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-pink-500 resize-none"
-            rows={4}
-          />
-          <button
-            onClick={handlePost}
-            className="w-full py-3 font-semibold rounded-md bg-gradient-to-r from-pink-600 to-purple-600 hover:from-pink-700 hover:to-purple-700 transition"
-          >
-            Send Confession
-          </button>
-        </section>
-
-        {/* SORT BY BUTTON + DROPDOWN */}
-        <section className="mb-8 flex justify-center">
-          <div className="relative inline-block text-left">
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 campus-pattern-bg">
+      {/* Navbar */}
+      <CampusNavbar 
+        user={user} 
+        onLogout={handleLogout}
+        campusName="Campus Whispers" 
+      />
+      
+      {/* Main Content */}
+      <main className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        {/* Welcome Banner */}
+        {showWelcomeBanner && (
+          <div className="relative bg-gradient-to-r from-primary to-tertiary rounded-xl p-6 mb-8 text-white shadow-lg animate-float">
             <button
-              onClick={() => setIsSortMenuOpen(!isSortMenuOpen)}
-              className="inline-flex items-center px-4 py-2 text-sm font-medium text-white 
-                         bg-pink-600 rounded-md hover:bg-pink-700 focus:outline-none 
-                         focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 
-                         focus:ring-pink-500 transition-colors"
+              onClick={() => setShowWelcomeBanner(false)}
+              className="absolute top-3 right-3 text-white/80 hover:text-white"
             >
-              Sort By:&nbsp;
-              {sortOption === "recent"
-                ? "Recent Confessions"
-                : sortOption === "upvotes"
-                ? "Highest Upvotes"
-                : "Most Reactions"}
-              <span className="ml-2">▼</span>
+              <XMarkIcon className="w-5 h-5" />
             </button>
-            {isSortMenuOpen && (
-              <div
-                className="absolute right-0 z-10 mt-2 w-48 origin-top-right 
-                           bg-white/10 backdrop-blur-md border border-white/20 
-                           rounded-md shadow-lg focus:outline-none animate-fadeIn"
-              >
-                <div className="py-1">
-                  <button
-                    onClick={() => {
-                      setSortOption("recent");
-                      setIsSortMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm text-white 
-                                hover:bg-pink-600 hover:text-white transition-colors 
-                                ${
-                                  sortOption === "recent"
-                                    ? "bg-pink-600 text-white"
-                                    : ""
-                                }`}
-                  >
-                    Recent Confessions
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortOption("upvotes");
-                      setIsSortMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm text-white 
-                                hover:bg-pink-600 hover:text-white transition-colors 
-                                ${
-                                  sortOption === "upvotes"
-                                    ? "bg-pink-600 text-white"
-                                    : ""
-                                }`}
-                  >
-                    Highest Upvotes
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSortOption("reactions");
-                      setIsSortMenuOpen(false);
-                    }}
-                    className={`block w-full text-left px-4 py-2 text-sm text-white 
-                                hover:bg-pink-600 hover:text-white transition-colors 
-                                ${
-                                  sortOption === "reactions"
-                                    ? "bg-pink-600 text-white"
-                                    : ""
-                                }`}
-                  >
-                    Most Reactions
-                  </button>
-                </div>
-              </div>
-            )}
+            
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Welcome to Campus Whispers</h1>
+            <p className="mb-4 max-w-2xl">
+              Share thoughts, ask questions, and connect with your campus community.
+              Post anonymously or build your profile. Be kind, be respectful, be yourself.
+            </p>
+            
+            <button 
+              onClick={() => setIsComposeModalOpen(true)}
+              className="bg-white text-primary hover:bg-gray-100 px-5 py-2.5 rounded-lg font-medium transition-colors shadow-md"
+            >
+              Create Your First Post
+            </button>
           </div>
-        </section>
-
-        {/* POSTS MASONRY LAYOUT */}
-        <section>
-          <h2 className="text-2xl font-bold text-gray-200 mb-6">
-            {sortOption === "recent"
-              ? "Recent Confessions"
-              : sortOption === "upvotes"
-              ? "Confessions with Highest Upvotes"
-              : "Confessions with Most Reactions"}
-          </h2>
-          {sortedPosts.length > 0 ? (
-            <div className="columns-1 sm:columns-2 lg:columns-3 gap-6 space-y-6">
-              {sortedPosts.map((post) => (
-                <MessageCard
-                  key={post.$id}
-                  docId={post.$id}
-                  content={post.message}
-                  onOpen={handleOpenMessage}
-                  voteData={votes[post.$id]}
-                  reactionData={reactions[post.$id]}
-                  onVote={handleVote}
-                  onReact={handleReaction}
-                />
-              ))}
+        )}
+        
+        {/* Add loading overlay when fetching posts */}
+        {isLoading && (
+          <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
+            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm mx-auto">
+              <div className="flex items-center justify-center space-x-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                <p className="text-gray-700 dark:text-gray-300">Loading all messages...</p>
+              </div>
             </div>
-          ) : (
-            <div className="text-center text-gray-400 mt-8">
-              Be the first to confess anonymously...
-            </div>
-          )}
-        </section>
+          </div>
+        )}
+        
+        {/* Message Feed */}
+        <CampusFeed 
+          posts={posts}
+          votesMap={convertVotesForFeed(votes)}
+          reactionsMap={reactions}
+          replyCountMap={replyCountMap}
+          isLoading={isLoading}
+          onCreatePost={handleCreatePostForFeed}
+          onUpvote={handleUpvote}
+          onDownvote={handleDownvote}
+          onReact={handleReaction}
+          onReply={handleOpenMessage}
+          onShare={() => {}}
+          onViewMessage={handleOpenMessage}
+        />
+      </main>
+      
+      {/* New Post Button (Mobile) */}
+      <div className="md:hidden fixed bottom-6 right-6 z-40">
+        <button
+          onClick={() => setIsComposeModalOpen(true)}
+          className="bg-primary hover:bg-primary-dark text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg transition-colors"
+        >
+          <PaperAirplaneIcon className="w-6 h-6 transform rotate-45" />
+        </button>
       </div>
-
-      {/* MODAL */}
-      <Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-        {renderModalContent}
-      </Modal>
-    </main>
+      
+      {/* New Post Button (Desktop) */}
+      <div className="hidden md:block">
+        <CampusComposer
+          onSubmit={handleCreatePost}
+          isMinimized={isComposerMinimized}
+          onToggleMinimize={() => setIsComposerMinimized(!isComposerMinimized)}
+          placeholder="Share something with your campus..."
+        />
+      </div>
+      
+      {/* Message Details Modal */}
+      <CampusModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        title="Campus Whisper"
+      >
+        <MessageDetails
+          message={selectedMessageContent}
+          replies={selectedMessageReplies}
+          onVote={handleVoteForMessage}
+          onReact={(reaction) => handleReaction(selectedMessageId, reaction)}
+          onReply={handleReply}
+          userVote={votes[selectedMessageId]?.userVoted ?? 0}
+          voteCount={
+            (votes[selectedMessageId]?.upvotes || 0) - 
+            (votes[selectedMessageId]?.downvotes || 0)
+          }
+          isLoading={isRepliesLoading}
+        />
+      </CampusModal>
+      
+      {/* New Post Modal (for mobile) */}
+      <CampusModal
+        isOpen={isComposeModalOpen}
+        onClose={() => setIsComposeModalOpen(false)}
+        title="New Campus Whisper"
+      >
+        <div className="p-4">
+          <CampusComposer
+            onSubmit={handleCreatePost}
+            onCancel={() => setIsComposeModalOpen(false)}
+            isModalVersion={true}
+            placeholder="Share something with your campus..."
+          />
+        </div>
+      </CampusModal>
+    </div>
   );
-}
+};
+
+// For IconType error in the PaperAirplaneIcon, importing it separately
+import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline';
