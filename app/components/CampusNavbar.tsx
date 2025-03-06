@@ -213,50 +213,44 @@ const CampusNavbar: React.FC<NavbarProps> = ({
                     </p>
                   </div>
                   
+                  {/* User Profile Section */}
                   {user ? (
                     <>
-                      <Link
-                        href="/profile"
-                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
+                      <div className="flex items-center p-2">
+                        <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium mr-3">
+                          {user.name?.[0] || user.email?.[0] || 'U'}
+                        </div>
+                        <div>
+                          <p className="text-sm font-medium text-gray-900 dark:text-white">
+                            {user.name || 'User'}
+                          </p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">
+                            {user.email || ''}
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <Link href="/profile" className="block p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300">
                         Your Profile
                       </Link>
-                      <Link
-                        href="/settings"
-                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        Settings
-                      </Link>
-                      <button
-                        onClick={() => {
-                          setIsProfileOpen(false);
-                          onSignOut && onSignOut();
-                        }}
-                        className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
-                      >
-                        Sign out
-                      </button>
+                      
+                      {onSignOut && (
+                        <button 
+                          onClick={onSignOut}
+                          className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
+                        >
+                          Sign out
+                        </button>
+                      )}
                     </>
-                  ) : (
-                    <>
-                      <Link
-                        href="/signin"
-                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        Sign in
-                      </Link>
-                      <Link
-                        href="/signup"
-                        className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-                        onClick={() => setIsProfileOpen(false)}
-                      >
-                        Sign up
-                      </Link>
-                    </>
-                  )}
+                  ) : onSignIn ? (
+                    <button 
+                      onClick={onSignIn}
+                      className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+                    >
+                      Sign in
+                    </button>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -330,6 +324,7 @@ const CampusNavbar: React.FC<NavbarProps> = ({
             <span className="text-gray-700 dark:text-gray-300">Settings</span>
           </div>
           
+          {/* User Profile Section */}
           {user ? (
             <>
               <div className="flex items-center p-2">
@@ -359,18 +354,14 @@ const CampusNavbar: React.FC<NavbarProps> = ({
                 </button>
               )}
             </>
-          ) : (
-            <div>
-              {onSignIn && (
-                <button 
-                  onClick={onSignIn}
-                  className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
-                >
-                  Sign in
-                </button>
-              )}
-            </div>
-          )}
+          ) : onSignIn ? (
+            <button 
+              onClick={onSignIn}
+              className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+            >
+              Sign in
+            </button>
+          ) : null}
         </div>
       </div>
     </header>
