@@ -83,6 +83,22 @@ interface Notification {
   isRead: boolean;
 }
 
+// Add interface for reply documents from Appwrite
+interface ReplyDocument {
+  $id: string;
+  messageId: string;
+  reply: string;
+  $createdAt: string;
+  userId: string;
+  isRead: boolean;
+}
+
+// Add interface for reply with message context
+interface ReplyWithMessage extends ReplyDocument {
+  message: string;
+  createdAt: string;
+}
+
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -357,7 +373,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       const userPostIds = userPosts.documents.map(post => post.$id);
       
       // 3. Get replies to those posts, ordered by creation date
-      const allReplies: any[] = [];
+      const allReplies: ReplyWithMessage[] = [];
       for (const postId of userPostIds) {
         const replies = await databases.listDocuments(
           databaseId,
@@ -372,20 +388,33 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         // Add post message to each reply for context
         const postMessage = userPosts.documents.find(p => p.$id === postId)?.message || '';
         
-        allReplies.push(...replies.documents.map(reply => ({
+        const typedReplies = replies.documents as unknown as ReplyDocument[];
+        allReplies.push(...typedReplies.map(reply => ({
           ...reply,
           message: postMessage,
+          createdAt: reply.$createdAt,
           isRead: reply.isRead || false
         })));
       }
       
       // Sort all replies by creation date
       const sortedReplies = allReplies.sort((a, b) => 
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+        new Date(b.$createdAt).getTime() - new Date(a.$createdAt).getTime()
       );
       
-      setNotifications(sortedReplies);
-      setUnreadCount(sortedReplies.filter(n => !n.isRead).length);
+      // Convert to Notification type
+      const notifications: Notification[] = sortedReplies.map(reply => ({
+        $id: reply.$id,
+        messageId: reply.messageId,
+        message: reply.message,
+        replyId: reply.$id,
+        replyContent: reply.reply,
+        createdAt: reply.$createdAt,
+        isRead: reply.isRead
+      }));
+      
+      setNotifications(notifications);
+      setUnreadCount(notifications.filter(n => !n.isRead).length);
       
     } catch (error) {
       console.error('Error fetching notifications:', error);
