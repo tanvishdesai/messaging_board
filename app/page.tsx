@@ -46,6 +46,22 @@ interface VoteInfo {
 
 type VotesMap = Record<string, VoteInfo>;
 
+// Add type definitions for reactions and replies
+interface ReactionInfo {
+  count: number;
+  userReacted: boolean;
+}
+
+interface ReactionsMap {
+  [postId: string]: {
+    [reaction: string]: ReactionInfo;
+  };
+}
+
+interface ReplyCountMap {
+  [postId: string]: number;
+}
+
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -252,15 +268,8 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   }[]>([]);
   
   const [votes, setVotes] = useState<VotesMap>({});
-  const [reactions, setReactions] = useState<{
-    [postId: string]: {
-      [reaction: string]: {
-        count: number;
-        userReacted: boolean;
-      };
-    };
-  }>({});
-  const [replyCountMap, setReplyCountMap] = useState<{ [postId: string]: number }>({});
+  const [reactions, setReactions] = useState<ReactionsMap>({});
+  const [replyCountMap, setReplyCountMap] = useState<ReplyCountMap>({});
   
   // UI state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -586,14 +595,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         reaction: string;
         userId: string;
       }[];
-      const reactionsMap: {
-        [postId: string]: {
-          [reaction: string]: {
-            count: number;
-            userReacted: boolean;
-          };
-        };
-      } = {};
+      const reactionsMap: ReactionsMap = {};
       
       reactionsData.forEach((doc) => {
         const { postId, reaction, userId } = doc;
@@ -630,7 +632,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         reply: string;
       }[];
       
-      const replyCounts: { [postId: string]: number } = {};
+      const replyCounts: ReplyCountMap = {};
       repliesData.forEach((doc) => {
         const { messageId } = doc;
         if (!replyCounts[messageId]) {
@@ -1063,6 +1065,22 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     return handleCreatePost(message, isAnonymous, category);
   };
 
+  useEffect(() => {
+    fetchAllPosts();
+    fetchVotes();
+    fetchReactions();
+    fetchReplyCounts();
+  }, [fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
+
+  useEffect(() => {
+    if (!isLoading) {
+      fetchAllPosts();
+      fetchVotes();
+      fetchReactions();
+      fetchReplyCounts();
+    }
+  }, [isLoading, fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 campus-pattern-bg">
       {/* Navbar */}
@@ -1163,7 +1181,13 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
             
             {filteredPosts.length === 0 ? (
               <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
-                <p className="text-gray-500 dark:text-gray-400">No posts found matching "{searchQuery}"</p>
+                <p className="text-gray-500 dark:text-gray-400">
+                  {searchQuery ? (
+                    <>No posts found matching &quot;{searchQuery}&quot;</>
+                  ) : (
+                    <>No posts available</>
+                  )}
+                </p>
               </div>
             ) : (
               <CampusFeed 
