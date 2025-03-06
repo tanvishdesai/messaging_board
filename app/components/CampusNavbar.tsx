@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
 import { BellIcon, UserCircleIcon, SunIcon, MoonIcon,  MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellIconSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
@@ -361,7 +360,7 @@ const CampusNavbar: React.FC<NavbarProps> = ({
               )}
             </>
           ) : (
-            <>
+            <div>
               {onSignIn && (
                 <button 
                   onClick={onSignIn}
@@ -370,7 +369,7 @@ const CampusNavbar: React.FC<NavbarProps> = ({
                   Sign in
                 </button>
               )}
-            </>
+            </div>
           )}
         </div>
       </div>
