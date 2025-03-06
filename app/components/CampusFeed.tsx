@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect,  useMemo, useRef } from 'react';
 import { ViewColumnsIcon, Squares2X2Icon, ListBulletIcon, ArrowsUpDownIcon, FireIcon, ClockIcon, ChatBubbleLeftEllipsisIcon, FunnelIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import CampusMessageCard from './CampusMessageCard';
 
@@ -58,7 +58,6 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
   reactionsMap,
   replyCountMap,
   isLoading = false,
-  onCreatePost,
   onUpvote,
   onDownvote,
   onReact,

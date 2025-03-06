@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { BellIcon, UserCircleIcon, SunIcon, MoonIcon, Bars3Icon, XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { BellIcon, UserCircleIcon, SunIcon, MoonIcon,  MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellIconSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
@@ -27,24 +27,20 @@ type NavbarProps = {
 
 const CampusNavbar: React.FC<NavbarProps> = ({ 
   user,
-  onLogout,
+  
   campusName = "Campus Whispers",
   logoUrl,
   onSignIn,
   onSignOut,
   onSearch,
-  onToggleTheme,
-  isDarkMode = false,
   unreadNotifications = 0
 }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [scrolled, setScrolled] = useState(false);
   
-  const pathname = usePathname();
   
   // Check for dark mode preference
   useEffect(() => {
@@ -75,12 +71,7 @@ const CampusNavbar: React.FC<NavbarProps> = ({
     document.documentElement.classList[newMode ? 'add' : 'remove']('dark');
   };
   
-  const navLinks = [
-    { name: 'Home', path: '/' },
-    { name: 'Trending', path: '/trending' },
-    { name: 'Campus Events', path: '/events' },
-    { name: 'About', path: '/about' }
-  ];
+ 
   
   // Handle search submission
   const handleSearchSubmit = (e: React.FormEvent) => {
@@ -370,14 +361,16 @@ const CampusNavbar: React.FC<NavbarProps> = ({
               )}
             </>
           ) : (
-            onSignIn && (
-              <button 
-                onClick={onSignIn}
-                className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
-              >
-                Sign in
-              </button>
-            )
+            <>
+              {onSignIn && (
+                <button 
+                  onClick={onSignIn}
+                  className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+                >
+                  Sign in
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
