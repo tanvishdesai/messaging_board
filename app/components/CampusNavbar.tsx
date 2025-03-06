@@ -197,19 +197,9 @@ const CampusNavbar: React.FC<NavbarProps> = ({
               >
                 {user ? (
                   <>
-                    {user.imageUrl ? (
-                      <Image 
-                        src={user.imageUrl} 
-                        alt={user.name || 'User'} 
-                        width={32} 
-                        height={32} 
-                        className="rounded-full"
-                      />
-                    ) : (
-                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
-                        {user.name?.[0] || user.email?.[0] || 'U'}
-                      </div>
-                    )}
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium">
+                      {user.name?.[0] || user.email?.[0] || 'U'}
+                    </div>
                     <span className="text-sm font-medium text-gray-700 dark:text-gray-300 hidden lg:block">
                       {user.name || user.email || 'User'}
                     </span>
@@ -359,19 +349,9 @@ const CampusNavbar: React.FC<NavbarProps> = ({
           {user ? (
             <>
               <div className="flex items-center p-2">
-                {user.imageUrl ? (
-                  <Image 
-                    src={user.imageUrl} 
-                    alt={user.name || 'User'} 
-                    width={32} 
-                    height={32} 
-                    className="rounded-full mr-3"
-                  />
-                ) : (
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium mr-3">
-                    {user.name?.[0] || user.email?.[0] || 'U'}
-                  </div>
-                )}
+                <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-medium mr-3">
+                  {user.name?.[0] || user.email?.[0] || 'U'}
+                </div>
                 <div>
                   <p className="text-sm font-medium text-gray-900 dark:text-white">
                     {user.name || 'User'}

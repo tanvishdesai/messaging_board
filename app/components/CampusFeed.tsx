@@ -2,9 +2,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { ViewColumnsIcon, Squares2X2Icon, ListBulletIcon, ArrowsUpDownIcon, FireIcon, ClockIcon, ChatBubbleLeftEllipsisIcon, FunnelIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import CampusMessageCard from './CampusMessageCard';
-import { ComposeBox } from './ComposeBox';
-import { CategoryPicker } from './CategoryPicker';
-import { Category } from '../types';
+
 
 type VoteInfo = {
   total: number;
@@ -25,6 +23,7 @@ export interface CampusFeedProps {
     category: Category;
     isAnonymous: boolean;
     userId?: string;
+    userName?: string;
   }[];
   votesMap: Record<string, {
     upvotes: number;
@@ -211,6 +210,8 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
     createdAt?: string;
     category?: string;
     isAnonymous?: boolean;
+    userId?: string;
+    userName?: string;
   }, index: number) => {
     const isBottomRowItem = index >= filteredPosts.length - (viewMode === 'grid' ? 4 : (viewMode === 'columns' ? 3 : 1));
     
@@ -223,7 +224,7 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
       Object.entries(postReactions).map(([type, info]) => ({
         type,
         count: info.count,
-        userReacted: info.selected
+        userReacted: info.userReacted
       }));
     
     // Get reply count for this post
@@ -244,8 +245,7 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
       reactions: formattedReactions,
       category: post.category,
       isAnonymous,
-      userName: post.isAnonymous ? undefined : "User",
-      userImage: post.isAnonymous ? undefined : "/images/avatar.png",
+      userName: post.isAnonymous ? undefined : post.userName || "Anonymous",
       onUpvote: (id: string) => onUpvote(id),
       onDownvote: (id: string) => onDownvote(id),
       onReaction: onReact,

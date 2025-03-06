@@ -23,7 +23,6 @@ export interface MessageCardProps {
   category?: string;
   isAnonymous?: boolean;
   userName?: string;
-  userImage?: string;
   onUpvote: (id: string) => void;
   onDownvote: (id: string) => void;
   onReaction: (id: string, reaction: string) => void;
@@ -80,14 +79,7 @@ const emojiMap: Record<string, string> = {
   'angry': '😡'
 };
 
-// Track global click state
-let isProcessingClick = false;
-const lockClick = () => {
-  isProcessingClick = true;
-  setTimeout(() => {
-    isProcessingClick = false;
-  }, 300);
-};
+
 
 const CampusMessageCard: React.FC<MessageCardProps> = memo(({
   id,
@@ -101,7 +93,6 @@ const CampusMessageCard: React.FC<MessageCardProps> = memo(({
   category,
   isAnonymous = true,
   userName,
-  userImage,
   onUpvote,
   onDownvote,
   onReaction,
@@ -196,7 +187,6 @@ const CampusMessageCard: React.FC<MessageCardProps> = memo(({
   }, [id, onReaction, handleAction]);
   
   // Parse the content for any possible embedded media links
-  const hasMedia = content.includes('[image]') || content.includes('[link]');
   
   // Get the vote score
   const voteScore = upvotes - downvotes;
@@ -218,14 +208,14 @@ const CampusMessageCard: React.FC<MessageCardProps> = memo(({
       }}
     >
       {/* Category Badge */}
-      {category && !compact && (
-        <div className={`absolute top-3 right-3 ${getCategoryColor(category)} text-white text-xs py-1 px-2 rounded-full font-medium`}>
-          {category}
+      {category && (
+        <div className={`inline-flex items-center ${compact ? 'text-[10px] py-0.5 px-2 mb-2' : 'absolute top-3 right-3 text-xs py-1 px-3'} ${getCategoryColor(category)} text-white rounded-full font-medium shadow-sm`}>
+          <span className="max-w-[100px] truncate">{category}</span>
         </div>
       )}
       
       {/* User Info or Anonymous */}
-      <div className="flex items-center mb-2">
+      <div className="flex items-center justify-between mb-3">
         {isAnonymous ? (
           <div className="flex items-center">
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white font-bold">
@@ -235,19 +225,9 @@ const CampusMessageCard: React.FC<MessageCardProps> = memo(({
           </div>
         ) : (
           <div className="flex items-center">
-            {userImage ? (
-              <Image 
-                src={userImage} 
-                alt={userName || 'User'} 
-                width={32} 
-                height={32} 
-                className="rounded-full"
-              />
-            ) : (
-              <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
-                {userName?.[0] || 'U'}
-              </div>
-            )}
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white font-bold">
+              {userName?.[0] || 'U'}
+            </div>
             <span className="ml-2 font-medium text-gray-800 dark:text-gray-200">{userName}</span>
           </div>
         )}
@@ -262,48 +242,46 @@ const CampusMessageCard: React.FC<MessageCardProps> = memo(({
       </div>
 
       {/* Reactions Row */}
-      {reactions.length > 0 && (
-        <div className="flex flex-wrap gap-1 mb-3">
-          {reactions.map(reaction => (
-            <button
-              key={reaction.type}
-              onClick={(e) => { 
-                e.stopPropagation();
-                onReaction(id, reaction.type);
-              }}
-              className={`flex items-center gap-1 text-xs ${reaction.userReacted ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-100 dark:bg-gray-700'} rounded-full px-2 py-1 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors`}
-            >
-              <span>{emojiMap[reaction.type] || reaction.type}</span>
-              <span>{reaction.count}</span>
-            </button>
-          ))}
-          
-          <button 
-            onClick={toggleReactionPicker}
-            className="flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-500 dark:text-gray-400"
+      <div className="flex flex-wrap gap-1 mb-3">
+        {reactions.map(reaction => (
+          <button
+            key={reaction.type}
+            onClick={(e) => { 
+              e.stopPropagation();
+              onReaction(id, reaction.type);
+            }}
+            className={`flex items-center gap-1 text-xs ${reaction.userReacted ? 'bg-blue-100 dark:bg-blue-900' : 'bg-gray-100 dark:bg-gray-700'} rounded-full px-2 py-1 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors`}
           >
-            +
+            <span>{emojiMap[reaction.type] || reaction.type}</span>
+            <span>{reaction.count}</span>
           </button>
-          
-          {/* Reaction picker popup */}
-          {showReactionPicker && (
-            <div 
-              ref={reactionPickerRef}
-              className="absolute z-10 bottom-20 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex gap-2"
-            >
-              {Object.entries(emojiMap).map(([type, emoji]) => (
-                <button
-                  key={type}
-                  onClick={(e) => handleReaction(e, type)}
-                  className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
-                >
-                  {emoji}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
+        ))}
+        
+        <button 
+          onClick={toggleReactionPicker}
+          className="flex items-center justify-center w-6 h-6 bg-gray-100 dark:bg-gray-700 rounded-full hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-500 dark:text-gray-400"
+        >
+          +
+        </button>
+        
+        {/* Reaction picker popup */}
+        {showReactionPicker && (
+          <div 
+            ref={reactionPickerRef}
+            className="absolute z-10 bottom-20 left-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-2 flex gap-2"
+          >
+            {Object.entries(emojiMap).map(([type, emoji]) => (
+              <button
+                key={type}
+                onClick={(e) => handleReaction(e, type)}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-full transition-colors"
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
       
       {/* Actions Row - Apply will-change for button hover states */}
       <div className="flex items-center justify-between pt-2 border-t border-gray-100 dark:border-gray-700">

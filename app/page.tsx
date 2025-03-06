@@ -11,8 +11,6 @@ import { useRouter } from "next/navigation";
 import { Client, Account, Databases, Query, ID } from "appwrite";
 
 import {
-  HandThumbUpIcon,
-  HandThumbDownIcon,
   ShareIcon,
 } from "@heroicons/react/24/solid";
 
@@ -263,6 +261,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     category: Category;
     isAnonymous: boolean;
     userId?: string;
+    userName?: string;
   }[]>([]);
   
   const [votes, setVotes] = useState<VotesMap>({});
@@ -304,7 +303,6 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const [isRepliesLoading, setIsRepliesLoading] = useState(true);
   
   // Add selected category state
-  const [selectedCategory, setSelectedCategory] = useState<Category>('general');
   
   // Fetch posts
   const fetchAllPosts = async () => {
@@ -358,6 +356,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         category: Category;
         isAnonymous: boolean;
         userId?: string;
+        userName?: string;
       }[];
       
       // Update state with all posts
@@ -638,8 +637,28 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   // Handle new post creation
   const handleCreatePost = async (message: string, isAnonymous: boolean, category: Category) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 500));
+      if (!user || !user.$id) {
+        throw new Error("User not authenticated");
+      }
+
+      // Create the post document
+      const newPost = await databases.createDocument(
+        databaseId,
+        messagesCollectionId,
+        ID.unique(),
+        {
+          message: message.trim(),
+          userId: user.$id,
+          userName: user.name || user.email?.split('@')[0] || 'Anonymous',
+          isAnonymous: isAnonymous,
+          category: category,
+          createdAt: new Date().toISOString()
+        }
+      );
+
+      console.log('New post created:', newPost);
       
+      // Refresh the posts list
       await fetchAllPosts();
       setIsComposeModalOpen(false);
       
@@ -872,7 +891,10 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   };
 
   // Update the reply type to match MessageDetails expectations
-
+  // Convert reply format for MessageDetails component
+  const handleReplyForMessageDetails = async (replyContent: string) => {
+    return handleReply(replyContent);
+  };
   // Update the vote handling to use correct types
   const handleVoteForMessage = (value: number) => {
     if (selectedMessageId) {

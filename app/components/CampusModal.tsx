@@ -11,7 +11,6 @@ export interface Reply {
   content: string;
   timestamp: Date | string;
   userName?: string;
-  userImage?: string;
   isAnonymous: boolean;
   upvotes: number;
   downvotes: number;
@@ -30,7 +29,6 @@ export interface MessageDetails {
   category?: string;
   isAnonymous: boolean;
   userName?: string;
-  userImage?: string;
   replyCount: number;
 }
 
@@ -147,16 +145,26 @@ const CampusModal = ({
   
   // Prevent body scroll when modal is open
   useEffect(() => {
-    if (isOpen && message) {
-      document.body.classList.add('overflow-hidden');
+    const html = document.documentElement;
+    const body = document.body;
+    
+    if (isOpen) {
+      const scrollbarWidth = window.innerWidth - html.clientWidth;
+      body.style.overflow = 'hidden';
+      body.style.paddingRight = `${scrollbarWidth}px`; // Prevent layout shift
+      html.style.overflow = 'hidden'; // Also prevent html scrolling
     } else {
-      document.body.classList.remove('overflow-hidden');
+      body.style.overflow = '';
+      body.style.paddingRight = '';
+      html.style.overflow = '';
     }
     
     return () => {
-      document.body.classList.remove('overflow-hidden');
+      body.style.overflow = '';
+      body.style.paddingRight = '';
+      html.style.overflow = '';
     };
-  }, [isOpen, message]);
+  }, [isOpen]);
   
   if (!isOpen) return null;
   
@@ -200,7 +208,6 @@ const CampusModal = ({
                   category={message.category}
                   isAnonymous={message.isAnonymous}
                   userName={message.userName}
-                  userImage={message.userImage}
                   onUpvote={onUpvote}
                   onDownvote={onDownvote}
                   onReaction={onReaction}
@@ -247,7 +254,6 @@ const CampusModal = ({
                         reactions={reply.reactions}
                         isAnonymous={reply.isAnonymous}
                         userName={reply.userName}
-                        userImage={reply.userImage}
                         onUpvote={onReplyUpvote}
                         onDownvote={onReplyDownvote}
                         onReaction={onReplyReaction}

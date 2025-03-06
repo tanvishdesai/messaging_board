@@ -259,8 +259,6 @@ export const P5MessageScene = memo(({
   votes,
   reactions,
   onOpenMessage,
-  onVote,
-  onReact,
   sceneSettings,
 }: {
   posts: { $id: string; message: string }[];
