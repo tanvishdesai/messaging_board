@@ -53,20 +53,14 @@ const CampusNavbar: React.FC<NavbarProps> = ({
         window.matchMedia('(prefers-color-scheme: dark)').matches;
       
       setDarkMode(isDarkMode);
-      isDarkMode ? 
-        document.documentElement.classList.add('dark') : 
-        document.documentElement.classList.remove('dark');
+      document.documentElement.classList[isDarkMode ? 'add' : 'remove']('dark');
     }
   }, []);
   
   // Handle scroll for transparent to solid background transition
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 10) {
-        setScrolled(true);
-      } else {
-        setScrolled(false);
-      }
+      setScrolled(window.scrollY > 10);
     };
     
     window.addEventListener('scroll', handleScroll);
@@ -78,9 +72,7 @@ const CampusNavbar: React.FC<NavbarProps> = ({
     const newMode = !darkMode;
     setDarkMode(newMode);
     localStorage.setItem('darkMode', String(newMode));
-    newMode ? 
-      document.documentElement.classList.add('dark') : 
-      document.documentElement.classList.remove('dark');
+    document.documentElement.classList[newMode ? 'add' : 'remove']('dark');
   };
   
   const navLinks = [
@@ -127,10 +119,12 @@ const CampusNavbar: React.FC<NavbarProps> = ({
           <div className="flex items-center">
             <Link href="/" className="flex items-center">
               {logoUrl ? (
-                <img 
+                <Image 
                   src={logoUrl} 
-                  alt={campusName} 
-                  className="h-8 w-auto" 
+                  alt={campusName}
+                  width={32}
+                  height={32}
+                  className="h-8 w-auto"
                 />
               ) : (
                 <div className="bg-gradient-to-r from-primary to-tertiary w-8 h-8 rounded-md flex items-center justify-center text-white font-bold text-lg mr-2">
@@ -366,20 +360,24 @@ const CampusNavbar: React.FC<NavbarProps> = ({
                 Your Profile
               </Link>
               
-              <button 
-                onClick={onSignOut}
-                className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
-              >
-                Sign out
-              </button>
+              {onSignOut && (
+                <button 
+                  onClick={onSignOut}
+                  className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-red-600"
+                >
+                  Sign out
+                </button>
+              )}
             </>
           ) : (
-            <button 
-              onClick={onSignIn}
-              className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
-            >
-              Sign in
-            </button>
+            onSignIn && (
+              <button 
+                onClick={onSignIn}
+                className="flex w-full items-center p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 text-blue-600"
+              >
+                Sign in
+              </button>
+            )
           )}
         </div>
       </div>

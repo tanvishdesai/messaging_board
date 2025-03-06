@@ -3,17 +3,16 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { ViewColumnsIcon, Squares2X2Icon, ListBulletIcon, ArrowsUpDownIcon, FireIcon, ClockIcon, ChatBubbleLeftEllipsisIcon, FunnelIcon, ChevronDownIcon } from '@heroicons/react/24/outline';
 import CampusMessageCard from './CampusMessageCard';
 
+type SortOption = 'recent' | 'upvotes' | 'trending' | 'controversial';
+type ViewMode = 'grid' | 'columns' | 'list';
+type Category = 'all' | 'general' | 'academics' | 'social' | 'housing' | 'food' | 'sports' | 'events';
 
-type VoteInfo = {
-  total: number;
-  userVote: number | null;
-  docId?: string;
-};
-
-type ReactionEntry = {
-  count: number;
-  userReacted: boolean;
-};
+// Extend Window interface to include our custom property
+declare global {
+  interface Window {
+    scrollTimer: ReturnType<typeof setTimeout>;
+  }
+}
 
 export interface CampusFeedProps {
   posts: { 
@@ -42,7 +41,7 @@ export interface CampusFeedProps {
     [postId: string]: number;
   };
   isLoading?: boolean;
-  onCreatePost?: (message: string, category: Category, isAnonymous: boolean) => void;
+  onCreatePost: (message: string, category: Category, isAnonymous: boolean) => void;
   onUpvote: (postId: string) => void;
   onDownvote: (postId: string) => void;
   onReact: (postId: string, reactionType: string) => void;
@@ -51,17 +50,6 @@ export interface CampusFeedProps {
   onViewMessage: (postId: string, content: string) => void;
   currentCategory?: string;
   className?: string;
-}
-
-type SortOption = 'recent' | 'upvotes' | 'trending' | 'controversial';
-type ViewMode = 'grid' | 'columns' | 'list';
-type Category = 'all' | 'general' | 'academics' | 'social' | 'housing' | 'food' | 'sports' | 'events';
-
-// Extend Window interface to include our custom property
-declare global {
-  interface Window {
-    scrollTimer: ReturnType<typeof setTimeout>;
-  }
 }
 
 const CampusFeed: React.FC<CampusFeedProps> = ({

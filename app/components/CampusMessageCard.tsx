@@ -1,9 +1,7 @@
 "use client";
 import React, { useState, memo, useCallback, useEffect, useRef } from 'react';
-import { HeartIcon, HandThumbUpIcon, HandThumbDownIcon, ChatBubbleLeftIcon, ShareIcon, BookmarkIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
-import { HeartIcon as HeartIconSolid, HandThumbUpIcon as HandThumbUpIconSolid, HandThumbDownIcon as HandThumbDownIconSolid, BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
-import Link from 'next/link';
-import Image from 'next/image';
+import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleLeftIcon, ShareIcon, BookmarkIcon, EllipsisHorizontalIcon } from '@heroicons/react/24/outline';
+import { HandThumbUpIcon as HandThumbUpIconSolid, HandThumbDownIcon as HandThumbDownIconSolid, BookmarkIcon as BookmarkIconSolid } from '@heroicons/react/24/solid';
 
 export interface ReactionType {
   type: string;

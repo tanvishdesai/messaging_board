@@ -1,8 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from 'react';
-import { XMarkIcon, ArrowUturnLeftIcon, FlagIcon, EllipsisHorizontalIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
-import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleLeftRightIcon, ShareIcon } from '@heroicons/react/24/outline';
-import { HandThumbUpIcon as HandThumbUpSolidIcon, HandThumbDownIcon as HandThumbDownSolidIcon } from '@heroicons/react/24/solid';
+import { XMarkIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import CampusMessageCard from './CampusMessageCard';
 import { ReactionType } from './CampusMessageCard';
 
@@ -211,7 +209,7 @@ const CampusModal = ({
                   onUpvote={onUpvote}
                   onDownvote={onDownvote}
                   onReaction={onReaction}
-                  onReply={(id) => replyInputRef.current?.focus()}
+                  onReply={() => replyInputRef.current?.focus()}
                   className="border border-gray-100 dark:border-gray-700"
                 />
               </div>
