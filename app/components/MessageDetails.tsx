@@ -1,6 +1,6 @@
 "use client";
 import React, { useState, useEffect } from 'react';
-import { HandThumbUpIcon, HandThumbDownIcon, ChatBubbleLeftIcon, ShareIcon, FaceSmileIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
+import { HandThumbUpIcon, HandThumbDownIcon, FaceSmileIcon, PaperAirplaneIcon } from '@heroicons/react/24/outline';
 import { HandThumbUpIcon as HandThumbUpSolidIcon, HandThumbDownIcon as HandThumbDownSolidIcon } from '@heroicons/react/24/solid';
 
 interface MessageDetailsProps {
@@ -47,7 +47,7 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
   useEffect(() => {
     if (!isLoading) {
       try {
-        let sorted = [...replies];
+        const sorted = [...replies];
         if (sortOption === 'newest') {
           sorted.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         } else if (sortOption === 'oldest') {

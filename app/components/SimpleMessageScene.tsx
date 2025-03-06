@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState, useRef, memo } from "react";
+import React, { useEffect, useState, memo } from "react";
 
 type VoteInfo = {
   total: number;

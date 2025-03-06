@@ -205,11 +205,11 @@ ReplyTextArea.displayName = "ReplyTextArea";
 // ----------------------
 const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const router = useRouter();
-  const client = new Client()
+  const client = useMemo(() => new Client()
     .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
-    .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
+    .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!), []);
 
-  const databases = new Databases(client);
+  const databases = useMemo(() => new Databases(client), [client]);
 
   // Check environment variables
   if (
