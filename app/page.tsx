@@ -205,25 +205,11 @@ ReplyTextArea.displayName = "ReplyTextArea";
 // ----------------------
 const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const router = useRouter();
-  const client = React.useMemo(() => {
-    console.log('Initializing Appwrite client...');
-    console.log('Environment variables check:', {
-      hasEndpoint: !!process.env.NEXT_PUBLIC_AW_ENDPOINT,
-      hasProjectId: !!process.env.NEXT_PUBLIC_AW_PROJECT_ID,
-      hasDatabaseId: !!process.env.NEXT_PUBLIC_AW_DATABASE_ID,
-      hasCollectionId: !!process.env.NEXT_PUBLIC_AW_COLLECTION_ID,
-      hasRepliesCollectionId: !!process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID
-    });
-    
-    return new Client()
-      .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
-      .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
-  }, []);
+  const client = new Client()
+    .setEndpoint(process.env.NEXT_PUBLIC_AW_ENDPOINT!)
+    .setProject(process.env.NEXT_PUBLIC_AW_PROJECT_ID!);
 
-  const databases = React.useMemo(() => {
-    console.log('Creating database instance...');
-    return new Databases(client);
-  }, [client]);
+  const databases = new Databases(client);
 
   // Check environment variables
   if (
@@ -273,7 +259,6 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       };
     };
   }>({});
-  const [replies, setReplies] = useState<{ [postId: string]: number }>({});
   const [replyCountMap, setReplyCountMap] = useState<{ [postId: string]: number }>({});
   
   // UI state
@@ -290,10 +275,8 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     votes: number;
   }[]>([]);
   
-  const [isComposerOpen, setIsComposerOpen] = useState(false);
   const [isComposerMinimized, setIsComposerMinimized] = useState(true);
   const [isComposeModalOpen, setIsComposeModalOpen] = useState(false);
-  const [replyInput, setReplyInput] = useState("");
   
   // Theme state - dark mode handled by CampusNavbar
   const [showWelcomeBanner, setShowWelcomeBanner] = useState(true);
@@ -304,121 +287,8 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   
   // Add selected category state
   
-  // Fetch posts
-  const fetchAllPosts = async () => {
-    try {
-      setIsLoading(true);
-      console.log("Fetching all posts...");
-      
-      // Track all documents across multiple pages
-      let allDocuments: any[] = [];
-      let currentPage = 0;
-      let hasMorePages = true;
-      
-      // Use Appwrite Query for pagination
-      const limit = 100; // Increase limit to reduce number of API calls
-      
-      // Fetch pages until we have all documents
-      while (hasMorePages) {
-        console.log(`Fetching page ${currentPage + 1}...`);
-        
-        // Call with pagination parameters
-        const response = await databases.listDocuments(
-          databaseId,
-          messagesCollectionId,
-          [
-            // Set the limit (max 100 per request)
-            Query.limit(limit),
-            // Skip already fetched documents
-            Query.offset(currentPage * limit),
-            // Sort by creation date
-            Query.orderDesc('createdAt')
-          ]
-        );
-        
-        // Add documents from this page to our collection
-        allDocuments = [...allDocuments, ...response.documents];
-        
-        // Check if we've reached the end
-        if (response.documents.length < limit) {
-          hasMorePages = false;
-        } else {
-          currentPage++;
-        }
-      }
-      
-      console.log("Total fetched posts count:", allDocuments.length);
-      
-      const postsData = allDocuments as unknown as {
-        $id: string;
-        message: string;
-        createdAt: string;
-        category: Category;
-        isAnonymous: boolean;
-        userId?: string;
-        userName?: string;
-      }[];
-      
-      // Update state with all posts
-      setPosts(postsData);
-      setIsLoading(false);
-      return postsData;
-    } catch (err) {
-      console.error("Error fetching posts:", err);
-      setIsLoading(false);
-      return [];
-    }
-  };
-  
-  // Initialize data
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const initializeData = async () => {
-      try {
-        const fetchedPosts = await fetchAllPosts();
-        if (!isSubscribed) return;
-
-        if (fetchedPosts.length > 0) {
-          await Promise.all([
-            fetchVotes(),
-            fetchReactions(),
-            fetchReplyCounts()
-          ]);
-        }
-      } catch (error) {
-        console.error('Error initializing data:', error);
-      }
-    };
-
-    initializeData();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, []); // Run only on mount
-
-  // Set up periodic refresh
-  useEffect(() => {
-    const refreshInterval = setInterval(async () => {
-      if (!isLoading) {
-        console.log('Refreshing data...');
-        await fetchAllPosts();
-        if (posts.length > 0) {
-          await Promise.all([
-            fetchVotes(),
-            fetchReactions(),
-            fetchReplyCounts()
-          ]);
-        }
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(refreshInterval);
-  }, [isLoading]);
-
   // Fetch votes
-  const fetchVotes = async () => {
+  const fetchVotes = useCallback(async () => {
     try {
       console.log('Fetching votes...');
       const response = await databases.listDocuments(
@@ -473,7 +343,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     } catch (error) {
       console.error('Error fetching votes:', error);
     }
-  };
+  }, [databases, databaseId, votesCollectionId, posts, user.$id]);
 
   // Voting handler with optimistic updates
   const handleVote = async (postId: string, voteType: 'up' | 'down') => {
@@ -604,7 +474,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     } catch (err) {
       console.error("Error fetching reactions:", err);
     }
-  }, [databases, databaseId, reactionsCollectionId, user]);
+  }, [databases, databaseId, reactionsCollectionId, user.$id]);
 
   // Fetch reply counts
   const fetchReplyCounts = useCallback(async () => {
@@ -633,6 +503,119 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       console.error("Error fetching reply counts:", err);
     }
   }, [databases, databaseId, repliesCollectionId]);
+
+  // Fetch posts
+  const fetchAllPosts = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      console.log("Fetching all posts...");
+      
+      // Track all documents across multiple pages
+      let allDocuments: Array<Record<string, unknown>> = [];
+      let currentPage = 0;
+      let hasMorePages = true;
+      
+      // Use Appwrite Query for pagination
+      const limit = 100; // Increase limit to reduce number of API calls
+      
+      // Fetch pages until we have all documents
+      while (hasMorePages) {
+        console.log(`Fetching page ${currentPage + 1}...`);
+        
+        // Call with pagination parameters
+        const response = await databases.listDocuments(
+          databaseId,
+          messagesCollectionId,
+          [
+            // Set the limit (max 100 per request)
+            Query.limit(limit),
+            // Skip already fetched documents
+            Query.offset(currentPage * limit),
+            // Sort by creation date
+            Query.orderDesc('createdAt')
+          ]
+        );
+        
+        // Add documents from this page to our collection
+        allDocuments = [...allDocuments, ...response.documents];
+        
+        // Check if we've reached the end
+        if (response.documents.length < limit) {
+          hasMorePages = false;
+        } else {
+          currentPage++;
+        }
+      }
+      
+      console.log("Total fetched posts count:", allDocuments.length);
+      
+      const postsData = allDocuments as unknown as {
+        $id: string;
+        message: string;
+        createdAt: string;
+        category: Category;
+        isAnonymous: boolean;
+        userId?: string;
+        userName?: string;
+      }[];
+      
+      // Update state with all posts
+      setPosts(postsData);
+      setIsLoading(false);
+      return postsData;
+    } catch (err) {
+      console.error("Error fetching posts:", err);
+      setIsLoading(false);
+      return [];
+    }
+  }, [databases, databaseId, messagesCollectionId]);
+  
+  // Initialize data
+  useEffect(() => {
+    let isSubscribed = true;
+
+    const initializeData = async () => {
+      try {
+        const fetchedPosts = await fetchAllPosts();
+        if (!isSubscribed) return;
+
+        if (fetchedPosts.length > 0) {
+          await Promise.all([
+            fetchVotes(),
+            fetchReactions(),
+            fetchReplyCounts()
+          ]);
+        }
+      } catch (error) {
+        console.error('Error initializing data:', error);
+      }
+    };
+
+    initializeData();
+
+    return () => {
+      isSubscribed = false;
+    };
+  }, [fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
+
+  // Set up periodic refresh
+  useEffect(() => {
+    const refreshInterval = setInterval(async () => {
+      if (!isLoading) {
+        console.log('Refreshing data...');
+        await fetchAllPosts();
+        if (posts.length > 0) {
+          await Promise.all([
+            fetchVotes(),
+            fetchReactions(),
+            fetchReplyCounts()
+          ]);
+        }
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    return () => clearInterval(refreshInterval);
+  }, [isLoading, posts.length, fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
 
   // Handle new post creation
   const handleCreatePost = async (message: string, isAnonymous: boolean, category: Category) => {
@@ -890,11 +873,6 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     handleVote(postId, 'down');
   };
 
-  // Update the reply type to match MessageDetails expectations
-  // Convert reply format for MessageDetails component
-  const handleReplyForMessageDetails = async (replyContent: string) => {
-    return handleReply(replyContent);
-  };
   // Update the vote handling to use correct types
   const handleVoteForMessage = (value: number) => {
     if (selectedMessageId) {
@@ -922,8 +900,6 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const handleCreatePostForFeed = (message: string, category: Category, isAnonymous: boolean) => {
     return handleCreatePost(message, isAnonymous, category);
   };
-
-  // Create a wrapper function for onReply to match expected signature
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 campus-pattern-bg">
