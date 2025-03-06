@@ -62,6 +62,27 @@ interface ReplyCountMap {
   [postId: string]: number;
 }
 
+// Add type definitions for filtered posts and notifications
+interface Post {
+  $id: string;
+  message: string;
+  createdAt: string;
+  category: Category;
+  isAnonymous: boolean;
+  userId?: string;
+  userName?: string;
+}
+
+interface Notification {
+  $id: string;
+  messageId: string;
+  message: string;
+  replyId: string;
+  replyContent: string;
+  createdAt: string;
+  isRead: boolean;
+}
+
 export default function Home() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -257,15 +278,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const reactionsCollectionId = process.env.NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID;
 
   // State
-  const [posts, setPosts] = useState<{ 
-    $id: string; 
-    message: string; 
-    createdAt: string;
-    category: Category;
-    isAnonymous: boolean;
-    userId?: string;
-    userName?: string;
-  }[]>([]);
+  const [posts, setPosts] = useState<Post[]>([]);
   
   const [votes, setVotes] = useState<VotesMap>({});
   const [reactions, setReactions] = useState<ReactionsMap>({});
@@ -299,8 +312,13 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   
   // Add search functionality
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
+  const [filteredPosts, setFilteredPosts] = useState<Post[]>([]);
   const [isSearching, setIsSearching] = useState<boolean>(false);
+  
+  // Add notifications state
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
   
   // Handle search query changes
   const handleSearch = useCallback((query: string) => {
@@ -320,19 +338,6 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     
     setFilteredPosts(results);
   }, [posts]);
-  
-  // Add notifications state
-  const [notifications, setNotifications] = useState<{
-    $id: string;
-    messageId: string;
-    message: string;
-    replyId: string;
-    replyContent: string;
-    createdAt: string;
-    isRead: boolean;
-  }[]>([]);
-  const [showNotifications, setShowNotifications] = useState<boolean>(false);
-  const [unreadCount, setUnreadCount] = useState<number>(0);
   
   // Fetch notifications (replies to user's posts)
   const fetchNotifications = useCallback(async () => {
@@ -650,97 +655,77 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   // Fetch posts
   const fetchAllPosts = useCallback(async () => {
     try {
-      setIsLoading(true);
       console.log("Fetching all posts...");
       
-      // Track all documents across multiple pages
-      let allDocuments: Array<Record<string, unknown>> = [];
+      let allDocuments: Post[] = [];
       let currentPage = 0;
       let hasMorePages = true;
+      const limit = 100;
       
-      // Use Appwrite Query for pagination
-      const limit = 100; // Increase limit to reduce number of API calls
-      
-      // Fetch pages until we have all documents
       while (hasMorePages) {
         console.log(`Fetching page ${currentPage + 1}...`);
         
-        // Call with pagination parameters
         const response = await databases.listDocuments(
           databaseId,
           messagesCollectionId,
           [
-            // Set the limit (max 100 per request)
             Query.limit(limit),
-            // Skip already fetched documents
             Query.offset(currentPage * limit),
-            // Sort by creation date
-            Query.orderDesc('createdAt')
+            Query.orderDesc('$createdAt')
           ]
         );
         
-        // Add documents from this page to our collection
-        allDocuments = [...allDocuments, ...response.documents];
+        const posts = response.documents as unknown as Post[];
+        allDocuments = [...allDocuments, ...posts];
         
-        // Check if we've reached the end
-        if (response.documents.length < limit) {
-          hasMorePages = false;
-        } else {
-          currentPage++;
-        }
+        hasMorePages = response.documents.length === limit;
+        if (hasMorePages) currentPage++;
       }
       
       console.log("Total fetched posts count:", allDocuments.length);
-      
-      const postsData = allDocuments as unknown as {
-        $id: string;
-        message: string;
-        createdAt: string;
-        category: Category;
-        isAnonymous: boolean;
-        userId?: string;
-        userName?: string;
-      }[];
-      
-      // Update state with all posts
-      setPosts(postsData);
-      setIsLoading(false);
-      return postsData;
+      setPosts(allDocuments);
+      return allDocuments;
     } catch (err) {
       console.error("Error fetching posts:", err);
-      setIsLoading(false);
       return [];
     }
   }, [databases, databaseId, messagesCollectionId]);
   
+  // Fix fetchData to handle loading state properly
+  const fetchData = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const newPosts = await fetchAllPosts();
+      if (newPosts.length > 0) {
+        await Promise.all([
+          fetchVotes(),
+          fetchReactions(),
+          fetchReplyCounts()
+        ]);
+      }
+      setIsLoading(false);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setIsLoading(false);
+    }
+  }, [fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
+
+  // Initialize data on component mount
+  useEffect(() => {
+    fetchData();
+  }, []); // Run only once on mount
+
   // Set up periodic refresh
   useEffect(() => {
-    const refreshInterval = setInterval(async () => {
-      if (!isLoading && document.visibilityState === 'visible') {
-        console.log('Refreshing data...');
-        const newPosts = await fetchAllPosts();
-        if (newPosts.length > 0) {
-          await Promise.all([
-            fetchVotes(),
-            fetchReactions(),
-            fetchReplyCounts()
-          ]);
-        }
+    const refreshInterval = setInterval(() => {
+      if (document.visibilityState === 'visible') {
+        fetchData();
       }
-    }, 30000); // Refresh every 30 seconds
+    }, 30000);
 
-    // Add visibility change listener
     const handleVisibilityChange = () => {
-      if (document.visibilityState === 'visible' && !isLoading) {
-        fetchAllPosts().then(newPosts => {
-          if (newPosts.length > 0) {
-            Promise.all([
-              fetchVotes(),
-              fetchReactions(),
-              fetchReplyCounts()
-            ]);
-          }
-        });
+      if (document.visibilityState === 'visible') {
+        fetchData();
       }
     };
 
@@ -750,36 +735,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       clearInterval(refreshInterval);
       document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [isLoading]); // Only depend on isLoading state
-
-  // Initialize data
-  useEffect(() => {
-    let isSubscribed = true;
-
-    const initializeData = async () => {
-      if (!isLoading) return; // Only initialize if loading is true
-      try {
-        const fetchedPosts = await fetchAllPosts();
-        if (!isSubscribed) return;
-
-        if (fetchedPosts.length > 0) {
-          await Promise.all([
-            fetchVotes(),
-            fetchReactions(),
-            fetchReplyCounts()
-          ]);
-        }
-      } catch (error) {
-        console.error('Error initializing data:', error);
-      }
-    };
-
-    initializeData();
-
-    return () => {
-      isSubscribed = false;
-    };
-  }, []); // Empty dependency array since this should only run once
+  }, [fetchData]);
 
   // Handle new post creation
   const handleCreatePost = async (message: string, isAnonymous: boolean, category: Category) => {
@@ -1065,22 +1021,6 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     return handleCreatePost(message, isAnonymous, category);
   };
 
-  useEffect(() => {
-    fetchAllPosts();
-    fetchVotes();
-    fetchReactions();
-    fetchReplyCounts();
-  }, [fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
-
-  useEffect(() => {
-    if (!isLoading) {
-      fetchAllPosts();
-      fetchVotes();
-      fetchReactions();
-      fetchReplyCounts();
-    }
-  }, [isLoading, fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 campus-pattern-bg">
       {/* Navbar */}
@@ -1132,7 +1072,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
                       {new Date(notification.createdAt).toLocaleString()}
                     </p>
                     <p className="text-xs italic text-gray-700 dark:text-gray-300 mb-1 truncate">
-                      Your post: "{notification.message}"
+                      Your post: &quot;{notification.message}&quot;
                     </p>
                     <p className="text-sm text-gray-800 dark:text-gray-200">
                       {notification.replyContent}
