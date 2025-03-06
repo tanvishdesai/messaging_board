@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { BellIcon, UserCircleIcon, SunIcon, MoonIcon,  MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { BellIcon, UserCircleIcon, SunIcon, MoonIcon,  MagnifyingGlassIcon, XMarkIcon } from '@heroicons/react/24/outline';
 import { BellIcon as BellIconSolid } from '@heroicons/react/24/solid';
 import Image from 'next/image';
 import { Cog6ToothIcon } from '@heroicons/react/24/outline';
@@ -22,17 +22,18 @@ type NavbarProps = {
   onToggleTheme?: () => void;
   isDarkMode?: boolean;
   unreadNotifications?: number;
+  onNotificationClick?: () => void;
 };
 
 const CampusNavbar: React.FC<NavbarProps> = ({ 
   user,
-  
   campusName = "Campus Whispers",
   logoUrl,
   onSignIn,
   onSignOut,
   onSearch,
-  unreadNotifications = 0
+  unreadNotifications = 0,
+  onNotificationClick
 }) => {
   const [darkMode, setDarkMode] = useState(false);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -75,8 +76,16 @@ const CampusNavbar: React.FC<NavbarProps> = ({
   // Handle search submission
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (onSearch && searchTerm.trim()) {
+    if (onSearch) {
       onSearch(searchTerm.trim());
+    }
+  };
+  
+  // Handle search clear
+  const handleClearSearch = () => {
+    setSearchTerm('');
+    if (onSearch) {
+      onSearch('');
     }
   };
   
@@ -135,11 +144,20 @@ const CampusNavbar: React.FC<NavbarProps> = ({
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder="Search messages..."
-                className="w-full py-2 pl-10 pr-4 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full py-2 pl-10 pr-10 rounded-full border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
               <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                 <MagnifyingGlassIcon className="h-5 w-5 text-gray-400" />
               </div>
+              {searchTerm && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                >
+                  <XMarkIcon className="h-5 w-5" />
+                </button>
+              )}
             </form>
           </div>
           
@@ -155,7 +173,10 @@ const CampusNavbar: React.FC<NavbarProps> = ({
             </button>
             
             {/* Notifications */}
-            <button className="p-2 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative">
+            <button 
+              onClick={onNotificationClick}
+              className="p-2 rounded-full text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
+            >
               {unreadNotifications > 0 ? (
                 <>
                   <BellIconSolid className="h-5 w-5" />

@@ -13,6 +13,7 @@ import { Client, Account, Databases, Query, ID } from "appwrite";
 import {
   ShareIcon,
 } from "@heroicons/react/24/solid";
+import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 // Import our new components
 import CampusNavbar from './components/CampusNavbar';
@@ -287,6 +288,144 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   
   // Add selected category state
   
+  // Add search functionality
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [filteredPosts, setFilteredPosts] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
+  
+  // Handle search query changes
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+    setIsSearching(!!query);
+    
+    if (!query) {
+      setFilteredPosts([]);
+      return;
+    }
+    
+    const results = posts.filter(post => 
+      post.message.toLowerCase().includes(query.toLowerCase()) ||
+      (post.userName && post.userName.toLowerCase().includes(query.toLowerCase())) ||
+      (post.category && post.category.toLowerCase().includes(query.toLowerCase()))
+    );
+    
+    setFilteredPosts(results);
+  }, [posts]);
+  
+  // Add notifications state
+  const [notifications, setNotifications] = useState<{
+    $id: string;
+    messageId: string;
+    message: string;
+    replyId: string;
+    replyContent: string;
+    createdAt: string;
+    isRead: boolean;
+  }[]>([]);
+  const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [unreadCount, setUnreadCount] = useState<number>(0);
+  
+  // Fetch notifications (replies to user's posts)
+  const fetchNotifications = useCallback(async () => {
+    if (!user || !user.$id) return;
+    
+    try {
+      // 1. Get user's posts
+      const userPosts = await databases.listDocuments(
+        databaseId,
+        messagesCollectionId,
+        [Query.equal('userId', user.$id)]
+      );
+      
+      if (userPosts.documents.length === 0) return;
+      
+      // 2. Get all post IDs from user
+      const userPostIds = userPosts.documents.map(post => post.$id);
+      
+      // 3. Get replies to those posts, ordered by creation date
+      const allReplies: any[] = [];
+      for (const postId of userPostIds) {
+        const replies = await databases.listDocuments(
+          databaseId,
+          repliesCollectionId,
+          [
+            Query.equal('messageId', postId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(50)
+          ]
+        );
+        
+        // Add post message to each reply for context
+        const postMessage = userPosts.documents.find(p => p.$id === postId)?.message || '';
+        
+        allReplies.push(...replies.documents.map(reply => ({
+          ...reply,
+          message: postMessage,
+          isRead: reply.isRead || false
+        })));
+      }
+      
+      // Sort all replies by creation date
+      const sortedReplies = allReplies.sort((a, b) => 
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
+      
+      setNotifications(sortedReplies);
+      setUnreadCount(sortedReplies.filter(n => !n.isRead).length);
+      
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    }
+  }, [user, databases, databaseId, messagesCollectionId, repliesCollectionId]);
+  
+  // Mark notification as read
+  const handleMarkAsRead = async (notificationId: string) => {
+    try {
+      await databases.updateDocument(
+        databaseId,
+        repliesCollectionId,
+        notificationId,
+        { isRead: true }
+      );
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(n => n.$id === notificationId ? {...n, isRead: true} : n)
+      );
+      setUnreadCount(prev => Math.max(0, prev - 1));
+      
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+  
+  // Toggle notifications panel
+  const handleToggleNotifications = () => {
+    // Fetch latest notifications when opening panel
+    if (!showNotifications) {
+      fetchNotifications();
+    }
+    setShowNotifications(!showNotifications);
+  };
+  
+  // Initial fetch of notifications
+  useEffect(() => {
+    if (user && user.$id) {
+      fetchNotifications();
+    }
+  }, [user, fetchNotifications]);
+  
+  // Refresh notifications periodically
+  useEffect(() => {
+    const notificationInterval = setInterval(() => {
+      if (user && user.$id) {
+        fetchNotifications();
+      }
+    }, 60000); // Check every minute
+    
+    return () => clearInterval(notificationInterval);
+  }, [user, fetchNotifications]);
+
   // Fetch votes
   const fetchVotes = useCallback(async () => {
     try {
@@ -306,13 +445,15 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       console.log('Processing votes:', allVotes.length);
 
       // Initialize votes map for all posts
-      posts.forEach(post => {
-        newVotesMap[post.$id] = {
-          upvotes: 0,
-          downvotes: 0,
-          userVoted: null
-        };
-      });
+      if (posts && posts.length > 0) {
+        posts.forEach(post => {
+          newVotesMap[post.$id] = {
+            upvotes: 0,
+            downvotes: 0,
+            userVoted: null
+          };
+        });
+      }
 
       // Process votes
       allVotes.forEach(vote => {
@@ -928,8 +1069,63 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       <CampusNavbar 
         user={user} 
         onLogout={handleLogout}
-        campusName="Campus Whispers" 
+        campusName="Campus Whispers"
+        onSearch={handleSearch}
+        onNotificationClick={handleToggleNotifications}
+        unreadNotifications={unreadCount}
       />
+      
+      {/* Notifications Panel */}
+      {showNotifications && (
+        <div className="fixed top-16 right-4 z-50 w-80 max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
+          <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
+            <button 
+              onClick={() => setShowNotifications(false)}
+              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
+          </div>
+          
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+              No notifications yet
+            </div>
+          ) : (
+            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
+              {notifications.map(notification => (
+                <li 
+                  key={notification.$id}
+                  className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
+                >
+                  <div 
+                    onClick={() => {
+                      handleOpenMessage(notification.messageId, notification.message);
+                      handleMarkAsRead(notification.$id);
+                      setShowNotifications(false);
+                    }}
+                    className="cursor-pointer"
+                  >
+                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
+                      New reply to your post
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </p>
+                    <p className="text-xs italic text-gray-700 dark:text-gray-300 mb-1 truncate">
+                      Your post: "{notification.message}"
+                    </p>
+                    <p className="text-sm text-gray-800 dark:text-gray-200">
+                      {notification.replyContent}
+                    </p>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       
       {/* Main Content */}
       <main className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
@@ -958,33 +1154,53 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
           </div>
         )}
         
-        {/* Add loading overlay when fetching posts */}
-        {isLoading && (
-          <div className="fixed inset-0 bg-black bg-opacity-30 z-50 flex items-center justify-center">
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl p-6 max-w-sm mx-auto">
-              <div className="flex items-center justify-center space-x-4">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                <p className="text-gray-700 dark:text-gray-300">Loading all messages...</p>
+        {/* Search Results */}
+        {isSearching && (
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-4">
+              Search Results {filteredPosts.length > 0 ? `(${filteredPosts.length})` : ''}
+            </h2>
+            
+            {filteredPosts.length === 0 ? (
+              <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
+                <p className="text-gray-500 dark:text-gray-400">No posts found matching "{searchQuery}"</p>
               </div>
-            </div>
+            ) : (
+              <CampusFeed 
+                posts={filteredPosts}
+                votesMap={convertVotesForFeed(votes)}
+                reactionsMap={reactions}
+                replyCountMap={replyCountMap}
+                isLoading={false}
+                onCreatePost={handleCreatePostForFeed}
+                onUpvote={handleUpvote}
+                onDownvote={handleDownvote}
+                onReact={handleReaction}
+                onReply={handleOpenMessage}
+                onShare={() => {}}
+                onViewMessage={handleOpenMessage}
+              />
+            )}
           </div>
         )}
         
-        {/* Message Feed */}
-        <CampusFeed 
-          posts={posts}
-          votesMap={convertVotesForFeed(votes)}
-          reactionsMap={reactions}
-          replyCountMap={replyCountMap}
-          isLoading={isLoading}
-          onCreatePost={handleCreatePostForFeed}
-          onUpvote={handleUpvote}
-          onDownvote={handleDownvote}
-          onReact={handleReaction}
-          onReply={handleOpenMessage}
-          onShare={() => {}}
-          onViewMessage={handleOpenMessage}
-        />
+        {/* Regular Feed (when not searching) */}
+        {!isSearching && (
+          <CampusFeed 
+            posts={posts}
+            votesMap={convertVotesForFeed(votes)}
+            reactionsMap={reactions}
+            replyCountMap={replyCountMap}
+            isLoading={isLoading}
+            onCreatePost={handleCreatePostForFeed}
+            onUpvote={handleUpvote}
+            onDownvote={handleDownvote}
+            onReact={handleReaction}
+            onReply={handleOpenMessage}
+            onShare={() => {}}
+            onViewMessage={handleOpenMessage}
+          />
+        )}
       </main>
       
       {/* New Post Button (Mobile) */}
@@ -1046,6 +1262,3 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     </div>
   );
 };
-
-// For IconType error in the PaperAirplaneIcon, importing it separately
-import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline';

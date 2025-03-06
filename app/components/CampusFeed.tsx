@@ -74,6 +74,12 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
   const [isCategoryMenuOpen, setIsCategoryMenuOpen] = useState(false);
   const [category, setCategory] = useState<Category>(currentCategory as Category);
   const [filteredPosts, setFilteredPosts] = useState(posts);
+
+  // Add new state for advanced filters
+  const [dateRange, setDateRange] = useState<'today' | 'week' | 'month' | 'all'>('all');
+  const [minUpvotes, setMinUpvotes] = useState<number>(0);
+  const [hasReplies, setHasReplies] = useState<'all' | 'with' | 'without'>('all');
+
   const feedRef = useRef<HTMLDivElement>(null);
   
   // Create memoized filtered posts to avoid excessive re-renders
@@ -85,11 +91,49 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
     // Filter by category if not 'all'
     if (category !== 'all') {
       console.log("Filtering by category:", category);
-      // Use the actual category field from posts
       result = result.filter(post => {
         const postCategory = post.category || 'general';
-        const matches = postCategory === category;
-        return matches;
+        return postCategory === category;
+      });
+    }
+
+    // Apply advanced filters
+    // 1. Date Range Filter
+    if (dateRange !== 'all') {
+      const now = new Date();
+      const cutoffDate = new Date();
+      
+      switch (dateRange) {
+        case 'today':
+          cutoffDate.setHours(0, 0, 0, 0);
+          break;
+        case 'week':
+          cutoffDate.setDate(now.getDate() - 7);
+          break;
+        case 'month':
+          cutoffDate.setMonth(now.getMonth() - 1);
+          break;
+      }
+      
+      result = result.filter(post => {
+        const postDate = new Date(post.createdAt);
+        return postDate >= cutoffDate;
+      });
+    }
+
+    // 2. Minimum Upvotes Filter
+    if (minUpvotes > 0) {
+      result = result.filter(post => {
+        const postVotes = votesMap[post.$id];
+        return postVotes && (postVotes.upvotes || 0) >= minUpvotes;
+      });
+    }
+
+    // 3. Has Replies Filter
+    if (hasReplies !== 'all') {
+      result = result.filter(post => {
+        const replyCount = replyCountMap[post.$id] || 0;
+        return hasReplies === 'with' ? replyCount > 0 : replyCount === 0;
       });
     }
     
@@ -136,7 +180,7 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
     
     console.log("Filtered posts count:", result.length);
     return result;
-  }, [posts, votesMap, reactionsMap, replyCountMap, category, sortOption]);
+  }, [posts, votesMap, reactionsMap, replyCountMap, category, sortOption, dateRange, minUpvotes, hasReplies]);
   
   // Update filtered posts state when memoized version changes
   useEffect(() => {
@@ -430,35 +474,59 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
       {/* Extra filters panel - would be expanded in a real implementation */}
       {isFilterMenuOpen && (
         <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 animate-slide-up-fade">
-          <h3 className="font-medium text-gray-900 dark:text-white mb-3">Advanced Filters</h3>
-          <div className="flex flex-wrap gap-4">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-medium text-gray-900 dark:text-white">Advanced Filters</h3>
+            <button
+              onClick={() => {
+                setDateRange('all');
+                setMinUpvotes(0);
+                setHasReplies('all');
+              }}
+              className="text-sm text-primary hover:text-primary-dark dark:text-primary-light dark:hover:text-primary transition-colors"
+            >
+              Clear Filters
+            </button>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Date Range</label>
-              <select className="campus-input py-1.5">
-                <option>Today</option>
-                <option>This Week</option>
-                <option>This Month</option>
-                <option>All Time</option>
+              <select 
+                className="campus-input py-1.5 w-full"
+                value={dateRange}
+                onChange={(e) => setDateRange(e.target.value as 'today' | 'week' | 'month' | 'all')}
+              >
+                <option value="all">All Time</option>
+                <option value="today">Today</option>
+                <option value="week">This Week</option>
+                <option value="month">This Month</option>
               </select>
             </div>
             
             <div>
               <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Minimum Upvotes</label>
-              <select className="campus-input py-1.5">
-                <option>Any</option>
-                <option>5+</option>
-                <option>10+</option>
-                <option>25+</option>
-                <option>50+</option>
+              <select 
+                className="campus-input py-1.5 w-full"
+                value={minUpvotes}
+                onChange={(e) => setMinUpvotes(Number(e.target.value))}
+              >
+                <option value="0">Any</option>
+                <option value="5">5+</option>
+                <option value="10">10+</option>
+                <option value="25">25+</option>
+                <option value="50">50+</option>
               </select>
             </div>
             
             <div>
               <label className="block text-sm text-gray-600 dark:text-gray-400 mb-1">Has Replies</label>
-              <select className="campus-input py-1.5">
-                <option>All Posts</option>
-                <option>With Replies</option>
-                <option>No Replies</option>
+              <select 
+                className="campus-input py-1.5 w-full"
+                value={hasReplies}
+                onChange={(e) => setHasReplies(e.target.value as 'all' | 'with' | 'without')}
+              >
+                <option value="all">All Posts</option>
+                <option value="with">With Replies</option>
+                <option value="without">No Replies</option>
               </select>
             </div>
           </div>
