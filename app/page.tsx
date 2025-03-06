@@ -570,11 +570,51 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     }
   }, [databases, databaseId, messagesCollectionId]);
   
+  // Set up periodic refresh
+  useEffect(() => {
+    const refreshInterval = setInterval(async () => {
+      if (!isLoading && document.visibilityState === 'visible') {
+        console.log('Refreshing data...');
+        const newPosts = await fetchAllPosts();
+        if (newPosts.length > 0) {
+          await Promise.all([
+            fetchVotes(),
+            fetchReactions(),
+            fetchReplyCounts()
+          ]);
+        }
+      }
+    }, 30000); // Refresh every 30 seconds
+
+    // Add visibility change listener
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && !isLoading) {
+        fetchAllPosts().then(newPosts => {
+          if (newPosts.length > 0) {
+            Promise.all([
+              fetchVotes(),
+              fetchReactions(),
+              fetchReplyCounts()
+            ]);
+          }
+        });
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      clearInterval(refreshInterval);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [isLoading]); // Only depend on isLoading state
+
   // Initialize data
   useEffect(() => {
     let isSubscribed = true;
 
     const initializeData = async () => {
+      if (!isLoading) return; // Only initialize if loading is true
       try {
         const fetchedPosts = await fetchAllPosts();
         if (!isSubscribed) return;
@@ -596,26 +636,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     return () => {
       isSubscribed = false;
     };
-  }, [fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
-
-  // Set up periodic refresh
-  useEffect(() => {
-    const refreshInterval = setInterval(async () => {
-      if (!isLoading) {
-        console.log('Refreshing data...');
-        await fetchAllPosts();
-        if (posts.length > 0) {
-          await Promise.all([
-            fetchVotes(),
-            fetchReactions(),
-            fetchReplyCounts()
-          ]);
-        }
-      }
-    }, 30000); // Refresh every 30 seconds
-
-    return () => clearInterval(refreshInterval);
-  }, [isLoading, posts.length, fetchAllPosts, fetchVotes, fetchReactions, fetchReplyCounts]);
+  }, []); // Empty dependency array since this should only run once
 
   // Handle new post creation
   const handleCreatePost = async (message: string, isAnonymous: boolean, category: Category) => {
