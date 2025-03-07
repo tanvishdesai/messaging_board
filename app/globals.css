@@ -236,6 +236,27 @@
   50% { transform: rotate(2deg); }
 }
 
+@keyframes fadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes slideDown {
+  0% { opacity: 0; transform: translateY(-10px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  0% { opacity: 0; transform: scale(0.95); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes buttonPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
 .animate-float {
   animation: float 4s ease-in-out infinite;
 }
@@ -248,8 +269,20 @@
   animation: slide-up-fade 0.5s forwards;
 }
 
-.animate-wiggle {
-  animation: wiggle 1s ease-in-out infinite;
+.animate-fadeIn {
+  animation: fadeIn 0.3s forwards;
+}
+
+.animate-slideDown {
+  animation: slideDown 0.3s forwards;
+}
+
+.animate-scaleIn {
+  animation: scaleIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+.animate-buttonPop {
+  animation: buttonPop 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }
 
 /* Campus-specific decorative elements */
@@ -357,4 +390,108 @@
   --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0 var(--tw-ring-offset-width) var(--tw-ring-offset-color);
   --tw-ring-shadow: var(--tw-ring-inset) 0 0 0 calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
   box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow), var(--tw-shadow, 0 0 #0000);
+}
+
+/* Message card hover effects */
+.message-card {
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  will-change: transform, box-shadow, border-color;
+}
+
+.message-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+.dark .message-card:hover {
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.5);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+
+/* Button hover effects */
+.message-card button {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message-card button:active {
+  transform: scale(0.92);
+}
+
+.message-card button:hover {
+  filter: brightness(1.15);
+}
+
+/* Message card grid layout */
+.message-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .message-card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Message card reaction container */
+.reaction-container {
+  background-color: #282A36;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 0.75rem;
+}
+
+/* Reaction emoji styling */
+.reaction-emoji {
+  font-size: 1.5rem;
+  margin-right: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.reaction-emoji:hover {
+  transform: scale(1.1);
+}
+
+/* Emoji picker popup */
+.emoji-reaction-popup {
+  position: fixed;
+  bottom: 150px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #282A36;
+  border-radius: 0.75rem;
+  padding: 0.75rem;
+  display: flex;
+  gap: 0.75rem;
+  border: 1px solid #3D4057;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6);
+  z-index: 1000;
+  animation: scaleIn 0.2s ease-out forwards;
+}
+
+/* Ensure emoji buttons are properly sized and visible */
+.emoji-reaction-button {
+  min-width: 40px;
+  min-height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.5rem;
+  border-radius: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+.emoji-reaction-button:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
+}
+
+/* Reaction counts style */
+.reaction-count {
+  font-size: 0.875rem;
+  font-weight: 500;
 }

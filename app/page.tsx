@@ -11,12 +11,10 @@ import { useRouter } from "next/navigation";
 import { Client, Account, Databases, Query, ID } from "appwrite";
 
 import {
-  ShareIcon,
-} from "@heroicons/react/24/solid";
+  ShareIcon} from "@heroicons/react/24/outline";
 import { PaperAirplaneIcon, XMarkIcon } from '@heroicons/react/24/outline';
 
 // Import our new components
-import CampusNavbar from './components/CampusNavbar';
 import CampusFeed from './components/CampusFeed';
 import CampusComposer from './components/CampusComposer';
 import CampusModal from './components/CampusModal';
@@ -91,6 +89,7 @@ interface ReplyDocument {
   $createdAt: string;
   userId: string;
   isRead: boolean;
+  isAnonymous: boolean;
 }
 
 // Add interface for reply with message context
@@ -292,6 +291,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const repliesCollectionId = process.env.NEXT_PUBLIC_AW_REPLIES_COLLECTION_ID;
   const votesCollectionId = process.env.NEXT_PUBLIC_AW_VOTES_COLLECTION_ID;
   const reactionsCollectionId = process.env.NEXT_PUBLIC_AW_REACTIONS_COLLECTION_ID;
+  const replyVotesCollectionId = process.env.NEXT_PUBLIC_AW_REPLY_VOTES_COLLECTION_ID;
 
   // State
   const [posts, setPosts] = useState<Post[]>([]);
@@ -308,10 +308,11 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     id: string;
     content: string;
     timestamp: string;
-    userId: string;
+    userId?: string;
     userName?: string;
     isAnonymous: boolean;
     votes: number;
+    userVoted?: 1 | -1 | null;
   }[]>([]);
   
   const [isComposerMinimized, setIsComposerMinimized] = useState(true);
@@ -333,8 +334,13 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   
   // Add notifications state
   const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [showNotifications, setShowNotifications] = useState<boolean>(false);
+  const [notificationsCount, setNotificationsCount] = useState(0);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [unreadCount, setUnreadCount] = useState<number>(0);
+  const [replyIsAnonymous, setReplyIsAnonymous] = useState(true);
+  
+  // Add new post modal state
+  const [newPostModalOpen, setNewPostModalOpen] = useState(false);
   
   // Handle search query changes
   const handleSearch = useCallback((query: string) => {
@@ -801,13 +807,14 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     }
   };
   // Handle reply submission
-  const handleReply = async (replyText: string) => {
+  const handleReply = async (replyText: string, isAnonymous: boolean) => {
     console.group('Reply Submission Process');
     console.log('Initial Check: ', {
       replyText: replyText,
       selectedMessageId: selectedMessageId,
       userId: user?.$id,
-      userExists: !!user
+      userExists: !!user,
+      isAnonymous
     });
   
     // Initial validation checks with detailed logging
@@ -831,7 +838,8 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         databaseId,
         repliesCollectionId,
         messageId: selectedMessageId,
-        userId: user.$id
+        userId: user.$id,
+        isAnonymous
       });
   
       const newReply = await databases.createDocument(
@@ -841,7 +849,7 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         {
           messageId: selectedMessageId,
           reply: replyText.trim(),
-          isAnonymous: true,
+          isAnonymous: isAnonymous,
           userId: user.$id,
           createdAt: new Date().toISOString()
         }
@@ -852,24 +860,18 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         content: replyText.trim()
       });
   
-      // Update UI state
+      // Optimistically update replies for the selected message
       setSelectedMessageReplies(prev => {
-        const updatedReplies = [{
+        return [{
           id: newReply.$id,
           content: replyText.trim(),
-          timestamp: newReply.createdAt,
+          timestamp: new Date().toISOString(),
           userId: user.$id || 'anonymous',
           userName: undefined,
-          isAnonymous: true,
-          votes: 0
+          isAnonymous: isAnonymous,
+          votes: 0,
+          userVoted: null
         }, ...prev];
-  
-        console.log('Updated replies state', {
-          previousRepliesCount: prev.length,
-          newRepliesCount: updatedReplies.length
-        });
-  
-        return updatedReplies;
       });
   
       // Update reply counts
@@ -904,10 +906,25 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
   const handleOpenMessage = async (postId: string, content?: string) => {
     console.log('handleOpenMessage started:', { postId, content });
     try {
+      // Find the post data if content is not provided
+      let messageContent = content;
+      if (!messageContent) {
+        const post = posts.find(p => p.$id === postId);
+        if (post) {
+          messageContent = post.message;
+          console.log('Found message content from posts:', messageContent);
+        }
+      }
+
+      if (!messageContent) {
+        console.error('No message content found for post ID:', postId);
+        return;
+      }
+
       // Set all state updates together to reduce re-renders
       const stateUpdates = {
         selectedMessageId: postId,
-        selectedMessageContent: content || '',
+        selectedMessageContent: messageContent,
         isModalOpen: true,
         isRepliesLoading: true,
         selectedMessageReplies: []
@@ -934,12 +951,13 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
       console.log('Processing replies...', { count: response.documents.length });
       const formattedReplies = response.documents.map(reply => ({
         id: reply.$id,
-        content: reply.content || reply.reply,
-        timestamp: reply.createdAt,
+        content: reply.reply,
+        timestamp: reply.$createdAt,
         userId: reply.userId || 'anonymous',
         userName: undefined,
-        isAnonymous: true,
-        votes: 0
+        isAnonymous: reply.isAnonymous || true,
+        votes: 0,
+        userVoted: null
       }));
       
       // Update replies and loading state together
@@ -1050,72 +1068,227 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
     return handleCreatePost(message, isAnonymous, category);
   };
 
+  // Vote on a reply
+  const handleReplyVote = async (replyId: string, voteValue: 1 | -1) => {
+    if (!user?.$id) {
+      alert('Please sign in to vote');
+      return;
+    }
+
+    try {
+      // Check if the user has already voted on this reply
+      const existingVotes = await databases.listDocuments(
+        databaseId,
+        replyVotesCollectionId || '',
+        [
+          Query.equal('replyId', replyId),
+          Query.equal('userId', user.$id)
+        ]
+      );
+
+      let voteDoc;
+      if (existingVotes.documents.length > 0) {
+        // User has already voted, update the vote
+        const existingVote = existingVotes.documents[0];
+        
+        if (existingVote.vote === voteValue) {
+          // User is clicking the same vote again, remove their vote
+          await databases.deleteDocument(
+            databaseId,
+            replyVotesCollectionId || '',
+            existingVote.$id
+          );
+          // Set to null to indicate vote removal in UI update
+          setSelectedMessageReplies(prev => {
+            return prev.map(reply => {
+              if (reply.id === replyId) {
+                return {
+                  ...reply,
+                  votes: reply.userVoted === 1 ? reply.votes - 1 : reply.userVoted === -1 ? reply.votes + 1 : reply.votes,
+                  userVoted: null
+                };
+              }
+              return reply;
+            });
+          });
+        } else {
+          // Update to the new vote value
+          voteDoc = await databases.updateDocument(
+            databaseId,
+            replyVotesCollectionId || '',
+            existingVote.$id,
+            { vote: voteValue }
+          );
+
+          // Update the UI optimistically for vote change
+          setSelectedMessageReplies(prev => {
+            return prev.map(reply => {
+              if (reply.id === replyId) {
+                // User changing their vote
+                const voteDiff = (voteValue === 1 ? 1 : -1) - (reply.userVoted === 1 ? 1 : -1);
+                return {
+                  ...reply,
+                  votes: reply.votes + voteDiff,
+                  userVoted: voteValue
+                };
+              }
+              return reply;
+            });
+          });
+        }
+      } else {
+        // Create a new vote document
+        voteDoc = await databases.createDocument(
+          databaseId,
+          replyVotesCollectionId || '',
+          ID.unique(),
+          {
+            replyId,
+            userId: user.$id,
+            vote: voteValue,
+            createdAt: new Date().toISOString()
+          }
+        );
+
+        // Update the UI optimistically for new vote
+        setSelectedMessageReplies(prev => {
+          return prev.map(reply => {
+            if (reply.id === replyId) {
+              return {
+                ...reply,
+                votes: voteValue === 1 ? reply.votes + 1 : reply.votes - 1,
+                userVoted: voteValue
+              };
+            }
+            return reply;
+          });
+        });
+      }
+    } catch (error) {
+      console.error('Error voting on reply:', error);
+      alert('Failed to vote on reply. Please try again.');
+    }
+  };
+
+  useEffect(() => {
+    let isEffectActive = true;
+    
+    const loadRepliesForMessage = async (messageId: string) => {
+      if (!messageId) return;
+      
+      try {
+        console.log('Loading replies for message:', messageId);
+        
+        setIsRepliesLoading(true);
+        
+        // Fetch replies
+        const repliesResponse = await databases.listDocuments(
+          databaseId,
+          repliesCollectionId || '',
+          [
+            Query.equal('messageId', messageId),
+            Query.orderDesc('$createdAt'),
+            Query.limit(100)
+          ]
+        );
+        
+        // If component is no longer mounted, don't update state
+        if (!isEffectActive) return;
+        
+        if (repliesResponse.documents.length > 0) {
+          // Load votes for these replies if user is logged in
+          let replyVotes: Record<string, 1 | -1 | null> = {};
+          
+          if (user?.$id) {
+            try {
+              const votesResponse = await databases.listDocuments(
+                databaseId,
+                replyVotesCollectionId || '',
+                [
+                  Query.equal('userId', user.$id),
+                  Query.limit(500)
+                ]
+              );
+              
+              // Create a map of replyId -> userVote
+              replyVotes = votesResponse.documents.reduce((acc, vote) => {
+                acc[vote.replyId] = vote.vote as 1 | -1;
+                return acc;
+              }, {} as Record<string, 1 | -1>);
+            } catch (error) {
+              console.error('Error fetching user votes for replies:', error);
+            }
+          }
+          
+          // Get total votes for each reply
+          const replyIds = repliesResponse.documents.map(doc => doc.$id);
+          let voteTotals: Record<string, number> = {};
+          
+          try {
+            // Only fetch votes if there are replies
+            if (replyIds.length > 0) {
+              const allVotesResponse = await databases.listDocuments(
+                databaseId,
+                replyVotesCollectionId || '',
+                [
+                  Query.equal('replyId', replyIds),
+                  Query.limit(1000)
+                ]
+              );
+              
+              // Calculate total votes for each reply
+              voteTotals = allVotesResponse.documents.reduce((acc, vote) => {
+                if (!acc[vote.replyId]) {
+                  acc[vote.replyId] = 0;
+                }
+                acc[vote.replyId] += vote.vote;
+                return acc;
+              }, {} as Record<string, number>);
+            }
+          } catch (error) {
+            console.error('Error fetching votes for replies:', error);
+          }
+          
+          // Map the replies
+          const formattedReplies = repliesResponse.documents.map(doc => ({
+            id: doc.$id,
+            content: doc.reply,
+            timestamp: doc.$createdAt,
+            userId: doc.userId,
+            userName: doc.userName || undefined,
+            isAnonymous: doc.isAnonymous || true,
+            votes: voteTotals[doc.$id] || 0,
+            userVoted: replyVotes[doc.$id] || null
+          }));
+          
+          setSelectedMessageReplies(formattedReplies);
+        } else {
+          setSelectedMessageReplies([]);
+        }
+      } catch (error) {
+        console.error('Error loading replies:', error);
+      } finally {
+        if (isEffectActive) {
+          setIsRepliesLoading(false);
+        }
+      }
+    };
+    
+    if (selectedMessageId) {
+      loadRepliesForMessage(selectedMessageId);
+    } else {
+      setSelectedMessageReplies([]);
+    }
+    
+    return () => {
+      isEffectActive = false;
+    };
+  }, [selectedMessageId, databases, databaseId, repliesCollectionId, user, replyVotesCollectionId]);
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900 campus-pattern-bg">
-      {/* Navbar */}
-      <CampusNavbar 
-        user={user} 
-        onLogout={handleLogout}
-        campusName="Campus Whispers"
-        onSearch={handleSearch}
-        onNotificationClick={handleToggleNotifications}
-        unreadNotifications={unreadCount}
-      />
-      
-      {/* Notifications Panel */}
-      {showNotifications && (
-        <div className="fixed top-16 right-4 z-50 w-80 max-h-[80vh] overflow-y-auto bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700">
-          <div className="p-3 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
-            <h3 className="font-semibold text-gray-900 dark:text-white">Notifications</h3>
-            <button 
-              onClick={() => setShowNotifications(false)}
-              className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-white"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-          </div>
-          
-          {notifications.length === 0 ? (
-            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
-              No notifications yet
-            </div>
-          ) : (
-            <ul className="divide-y divide-gray-200 dark:divide-gray-700">
-              {notifications.map(notification => (
-                <li 
-                  key={notification.$id}
-                  className={`p-3 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors ${!notification.isRead ? 'bg-blue-50 dark:bg-blue-900/20' : ''}`}
-                >
-                  <div 
-                    onClick={() => {
-                      handleOpenMessage(notification.messageId, notification.message);
-                      handleMarkAsRead(notification.$id);
-                      setShowNotifications(false);
-                    }}
-                    className="cursor-pointer"
-                  >
-                    <p className="text-sm font-medium text-gray-900 dark:text-white truncate mb-1">
-                      New reply to your post
-                    </p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">
-                      {new Date(notification.createdAt).toLocaleString()}
-                    </p>
-                    <p className="text-xs italic text-gray-700 dark:text-gray-300 mb-1 truncate">
-                      Your post: &quot;{notification.message}&quot;
-                    </p>
-                    <p className="text-sm text-gray-800 dark:text-gray-200">
-                      {notification.replyContent}
-                    </p>
-                  </div>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      )}
-      
       {/* Main Content */}
-      <main className="pt-20 pb-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <main className="container mx-auto px-4 py-8">
         {/* Welcome Banner */}
         {showWelcomeBanner && (
           <div className="relative bg-gradient-to-r from-primary to-tertiary rounded-xl p-6 mb-8 text-white shadow-lg animate-float">
@@ -1222,19 +1395,22 @@ const CampusWhispersPage: React.FC<CampusWhispersPageProps> = ({ user }) => {
         onClose={() => setIsModalOpen(false)}
         title="Campus Whisper"
       >
-        <MessageDetails
-          message={selectedMessageContent}
-          replies={selectedMessageReplies}
-          onVote={handleVoteForMessage}
-          onReact={(reaction) => handleReaction(selectedMessageId, reaction)}
-          onReply={handleReply}
-          userVote={votes[selectedMessageId]?.userVoted ?? 0}
-          voteCount={
-            (votes[selectedMessageId]?.upvotes || 0) - 
-            (votes[selectedMessageId]?.downvotes || 0)
-          }
-          isLoading={isRepliesLoading}
-        />
+        {selectedMessageContent && (
+          <MessageDetails
+            message={selectedMessageContent}
+            replies={selectedMessageReplies}
+            onVote={handleVoteForMessage}
+            onReact={(reaction) => handleReaction(selectedMessageId, reaction)}
+            onReply={handleReply}
+            onReplyVote={handleReplyVote}
+            userVote={votes[selectedMessageId]?.userVoted ?? 0}
+            voteCount={
+              (votes[selectedMessageId]?.upvotes || 0) - 
+              (votes[selectedMessageId]?.downvotes || 0)
+            }
+            isLoading={isRepliesLoading}
+          />
+        )}
       </CampusModal>
       
       {/* New Post Modal (for mobile) */}

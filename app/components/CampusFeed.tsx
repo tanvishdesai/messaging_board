@@ -280,7 +280,12 @@ const CampusFeed: React.FC<CampusFeedProps> = ({
       onUpvote: (id: string) => onUpvote(id),
       onDownvote: (id: string) => onDownvote(id),
       onReaction: onReact,
-      onReply: (id: string) => onReply(id),
+      onReply: (id: string) => {
+        console.log('Reply clicked for post:', id, 'with content:', post.message);
+        onReply(id);
+        // Also call onViewMessage to ensure the modal opens with content
+        onViewMessage(id, post.message || '');
+      },
       onShare,
       onClick: (id: string) => onViewMessage(id, post.message || ''),
       className: isBottomRowItem ? 'bottom-row-card transform-gpu' : '',

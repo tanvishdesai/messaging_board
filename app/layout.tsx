@@ -1,7 +1,7 @@
 "use client";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import Navbar from "@/components/Navbar"; // Import your Navbar
+import UnifiedNavbar from "@/components/UnifiedNavbar"; // Import the new UnifiedNavbar
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -23,8 +23,8 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {/* The Navbar is now rendered on every page */}
-        <Navbar  />
+        {/* Use the new UnifiedNavbar component */}
+        <UnifiedNavbar />
         {children}
       </body>
     </html>

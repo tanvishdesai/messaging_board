@@ -13,10 +13,12 @@ interface MessageDetailsProps {
     userId?: string;
     isAnonymous: boolean;
     votes: number;
+    userVoted?: 1 | -1 | null;
   }[];
   onVote: (value: number) => void;
   onReact: (reaction: string) => void;
-  onReply: (text: string) => Promise<boolean>;
+  onReply: (text: string, isAnonymous: boolean) => Promise<boolean>;
+  onReplyVote?: (replyId: string, value: 1 | -1) => void;
   userVote: number | null;
   voteCount: number;
   isLoading?: boolean;
@@ -28,6 +30,7 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
   onVote,
   onReact,
   onReply,
+  onReplyVote,
   userVote,
   voteCount,
   isLoading
@@ -74,8 +77,8 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
     try {
       setError(null);
       setIsSubmitting(true);
-      console.log('Submitting reply:', { replyText: replyText.trim() });
-      const success = await onReply(replyText);
+      console.log('Submitting reply:', { replyText: replyText.trim(), isAnonymous });
+      const success = await onReply(replyText, isAnonymous);
       console.log('Reply submission result:', { success });
       
       if (success) {
@@ -229,7 +232,7 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
           sortedReplies.map(reply => (
             <div 
               key={reply.id}
-              className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700"
+              className="p-3 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 mb-3"
             >
               <div className="flex items-center mb-2">
                 <div className="flex items-center">
@@ -248,6 +251,25 @@ const MessageDetails: React.FC<MessageDetailsProps> = ({
               <p className="text-gray-700 dark:text-gray-300 mb-2">{reply.content}</p>
               
               <div className="flex items-center text-gray-500 dark:text-gray-400">
+                {onReplyVote && (
+                  <div className="flex items-center gap-3 mr-3">
+                    <button 
+                      onClick={() => onReplyVote(reply.id, 1)}
+                      className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${reply.userVoted === 1 ? 'text-blue-500' : ''}`}
+                      aria-label="Upvote"
+                    >
+                      {reply.userVoted === 1 ? <HandThumbUpSolidIcon className="w-4 h-4" /> : <HandThumbUpIcon className="w-4 h-4" />}
+                    </button>
+                    
+                    <button
+                      onClick={() => onReplyVote(reply.id, -1)}
+                      className={`p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ${reply.userVoted === -1 ? 'text-red-500' : ''}`}
+                      aria-label="Downvote"
+                    >
+                      {reply.userVoted === -1 ? <HandThumbDownSolidIcon className="w-4 h-4" /> : <HandThumbDownIcon className="w-4 h-4" />}
+                    </button>
+                  </div>
+                )}
                 <span className="text-xs">{reply.votes} votes</span>
               </div>
             </div>
